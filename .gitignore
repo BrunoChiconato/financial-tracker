@@ -172,4 +172,4 @@ pyrightconfig.json
 
 # Source-code generator
 docgen.py
-source-code.md
+source_code.md
