@@ -1,0 +1,9 @@
+[project]
+name = "financial-tracker"
+version = "0.1.0"
+description = "Personal Financial Tracker with Telegram, Postgres and Streamlit"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "ruff>=0.12.11",
+]
