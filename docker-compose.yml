@@ -20,7 +20,9 @@ services:
       retries: 10
 
   bot:
-    build: ./bot
+    build:
+      context: .
+      dockerfile: src/bot_service/Dockerfile
     container_name: tgexp_bot
     restart: always
     depends_on:
@@ -29,15 +31,18 @@ services:
     environment:
       DB_HOST: db
       DB_PORT: "5432"
-      DB_NAME: ${POSTGRES_DB}
-      DB_USER: ${POSTGRES_USER}
-      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
       ALLOWED_USER_ID: ${ALLOWED_USER_ID}
       TZ: ${TZ}
-    command: ["python", "-u", "app.py"]
+      MONTHLY_CAP: ${MONTHLY_CAP:-1500.00}
+      CYCLE_RESET_DAY: ${CYCLE_RESET_DAY:-10}
+    command: ["python", "-u", "src/bot_service/app.py"]
     volumes:
-      - ./bot:/app
+      - ./src:/app/src
+      - ./config:/app/config:ro
     working_dir: /app
 
   pgadmin:
@@ -57,7 +62,9 @@ services:
       - pgadmin_data:/var/lib/pgadmin
 
   dashboard:
-    build: ./dashboard
+    build:
+      context: .
+      dockerfile: src/dashboard_service/Dockerfile
     container_name: tgexp_dashboard
     restart: always
     depends_on:
@@ -66,16 +73,20 @@ services:
     environment:
       DB_HOST: db
       DB_PORT: "5432"
-      DB_NAME: ${POSTGRES_DB}
-      DB_USER: ${POSTGRES_USER}
-      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
       TZ: ${TZ}
+      MONTHLY_CAP: ${MONTHLY_CAP:-1500.00}
+      CYCLE_RESET_DAY: ${CYCLE_RESET_DAY:-10}
     ports:
       - "8501:8501"
     volumes:
-      - ./dashboard:/app
+      - ./src:/app/src
+      - ./config:/app/config:ro
     working_dir: /app
-    command: ["streamlit", "run", "streamlit_app.py", "--server.port=8501", "--server.address=0.0.0.0"]
+    command: ["streamlit", "run", "src/dashboard_service/streamlit_app.py", "--server.port=8501", "--server.address=0.0.0.0"]
 
 volumes:
   pgdata:
