@@ -4,6 +4,23 @@ version = "0.1.0"
 description = "Personal Financial Tracker with Telegram, Postgres and Streamlit"
 readme = "README.md"
 requires-python = ">=3.13"
+
 dependencies = [
-    "ruff>=0.12.11",
+    "psycopg[binary]==3.2.9",
+    "python-dateutil==2.9.0.post0",
+    "uv>=0.8.11",
+    "pandas==2.2.3",
+]
+
+[project.optional-dependencies]
+bot = [
+    "python-telegram-bot>=20.7,<23",
+]
+dashboard = [
+    "streamlit==1.37.1",
+    "plotly>=5.0.0",
+    "matplotlib>=3.7.0",
+]
+dev = [
+    "ruff>=0.1.11",
 ]
