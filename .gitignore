@@ -170,6 +170,9 @@ poetry.toml
 # LSP config files
 pyrightconfig.json
 
-# Source-code generator
+# Source-Code Generator
 docgen.py
 source_code.md
+
+# DB Backups
+backup.sql
