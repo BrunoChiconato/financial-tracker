@@ -1,0 +1,31 @@
+{
+  "methods": {
+    "pix": "Pix",
+    "cartao de credito": "Cartão de Crédito",
+    "cartao de debito": "Cartão de Débito",
+    "boleto": "Boleto"
+  },
+  "tags": {
+    "gastos pessoais": "Gastos Pessoais",
+    "gastos do casal": "Gastos do Casal",
+    "gastos de casa": "Gastos de Casa"
+  },
+  "categories_display": [
+    "Alimentação",
+    "Assinatura",
+    "Casa",
+    "Compras",
+    "Educação",
+    "Eletrônicos",
+    "Lazer",
+    "Operação bancária",
+    "Outros",
+    "Pix",
+    "Saúde",
+    "Serviços",
+    "Supermercado",
+    "Transporte",
+    "Vestuário",
+    "Viagem"
+  ]
+}
