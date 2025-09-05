@@ -25,8 +25,10 @@ def main():
     app.add_handler(CommandHandler("health", handlers.cmd_health))
     app.add_handler(CommandHandler("last", handlers.cmd_last))
     app.add_handler(CommandHandler("undo", handlers.cmd_undo))
+    app.add_handler(CommandHandler("balance", handlers.cmd_balance))
 
     app.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), handlers.on_text))
+    app.add_error_handler(handlers.on_error)
 
     log.info("Bot started and polling for messages.")
     app.run_polling(allowed_updates=Update.ALL_TYPES)
