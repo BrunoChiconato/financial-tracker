@@ -2,8 +2,10 @@ import streamlit as st
 import plotly.express as px
 import pandas as pd
 from datetime import timedelta
+from decimal import Decimal
 
 from src.storage.repository import ExpenseRepository
+from src.core import config
 
 st.set_page_config(page_title="Dashboard de Gastos", layout="wide")
 repo = ExpenseRepository()
@@ -88,7 +90,7 @@ st.title("📊 Dashboard de Análise de Gastos")
 @st.cache_data(ttl=120)
 def get_initial_data():
     """
-    Fetches the entire expense dataset.
+    Fetches the entire expense dataset, including generated installments.
 
     This is used once on startup to determine the overall date range and
     populate filter options. The result is cached.
@@ -152,35 +154,75 @@ if not df_previous.empty:
         & (df_previous["tag"].isin(selected_tags))
     ]
 
-
 st.header(f"Análise do Período: {start_date:%d/%m/%Y} a {end_date:%d/%m/%Y}")
 
 if df_current.empty:
     st.info("Nenhum lançamento encontrado para os filtros selecionados.")
     st.stop()
 
-total_spent_current = df_current["amount"].sum()
-total_spent_previous = df_previous["amount"].sum()
+total_spent_current = Decimal(df_current["amount"].sum())
+total_spent_previous = Decimal(df_previous["amount"].sum())
 mom_total = calculate_mom(total_spent_current, total_spent_previous)
 
 num_days_current = period_duration.days + 1
 avg_daily_current = total_spent_current / num_days_current
 
-
 num_days_previous = period_duration.days + 1
 avg_daily_previous = total_spent_previous / num_days_previous
-
 mom_avg_daily = calculate_mom(avg_daily_current, avg_daily_previous)
 
-col1, col2, col3 = st.columns(3)
+monthly_cap = config.MONTHLY_CAP
+remaining_cap = monthly_cap - total_spent_current
+spent_percentage = (
+    min(float(total_spent_current / monthly_cap), 1.0) if monthly_cap > 0 else 0.0
+)
+
+col1, col2, col3, col4, col5 = st.columns(5)
 col1.metric(
     "Total Gasto no Período",
     format_currency(total_spent_current),
     delta=mom_total,
     help=f"Comparado com {previous_start_date:%d/%m} a {previous_end_date:%d/%m}",
 )
-col2.metric("Média Diária", format_currency(avg_daily_current), delta=mom_avg_daily)
-col3.metric("Nº de Lançamentos", str(len(df_current)))
+col2.metric(
+    "Teto de Gastos",
+    format_currency(monthly_cap),
+    help="Seu limite de gastos definido na configuração.",
+)
+if remaining_cap >= 0:
+    col3.metric(
+        "Saldo Restante",
+        format_currency(remaining_cap),
+        help="Quanto ainda resta para atingir o teto.",
+    )
+else:
+    col3.metric(
+        "Teto Excedido em",
+        format_currency(abs(remaining_cap)),
+        delta_color="inverse",
+        help="Valor gasto além do seu teto.",
+    )
+col4.metric("Média Diária", format_currency(avg_daily_current), delta=mom_avg_daily)
+col5.metric("Nº de Lançamentos", str(len(df_current)))
+
+if spent_percentage < 1 / 3:
+    progress_bar_color = "green"
+elif spent_percentage < 2 / 3:
+    progress_bar_color = "orange"
+else:
+    progress_bar_color = "red"
+
+st.progress(spent_percentage, text=f"{spent_percentage:.1%}")
+
+st.markdown(
+    f"""
+    <style>
+        .stProgress > div > div > div > div {{
+            background-color: {progress_bar_color};
+        }}
+    </style>""",
+    unsafe_allow_html=True,
+)
 
 st.divider()
 
@@ -281,8 +323,14 @@ columns_to_display = {
     "category": "Categoria",
     "method": "Método",
     "tag": "Tag",
+    "installment_number": "Nº da Parcela",
+    "installments": "Total de Parcelas",
 }
-df_display = df_current[list(columns_to_display.keys())].copy()
+df_display_cols = [
+    col for col in columns_to_display.keys() if col in df_current.columns
+]
+df_display = df_current[df_display_cols].copy()
+
 df_display.rename(columns=columns_to_display, inplace=True)
 st.dataframe(
     df_display.sort_values(by="Data e Hora", ascending=False),
