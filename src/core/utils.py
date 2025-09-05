@@ -29,10 +29,11 @@ def escape_markdown_v2(text: str) -> str:
 
 def get_current_and_previous_cycle_dates(today: date) -> dict:
     """
-    Calculates the start and end dates for the current and previous billing cycles.
-    A cycle starts on day 4 of a month and ends on day 3 of the next month.
+    Calculates the start/end dates for the current and previous billing cycles.
+    The cycle reset day is configured via `config.CYCLE_RESET_DAY` and the cycle
+    ends on the day before the same day in the next month.
     """
-    cycle_reset_day = config.CYCLE_RESET_DAY  # Dia 4
+    cycle_reset_day = config.CYCLE_RESET_DAY
 
     if today.day < cycle_reset_day:
         current_cycle_end = today.replace(day=cycle_reset_day) - relativedelta(days=1)
