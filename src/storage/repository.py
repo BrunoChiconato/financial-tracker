@@ -59,9 +59,23 @@ class ExpenseRepository:
 
     async def get_total_spent_in_period(self, start_dt: date, end_dt: date) -> Decimal:
         """
-        Calculates the sum of expenses within a given date range.
+        Calculates the sum of expenses within a given date range, considering installments.
         """
-        sql = "SELECT COALESCE(SUM(amount), 0) FROM public.expenses WHERE expense_ts::date BETWEEN %s AND %s"
+        sql = """
+            WITH monthly_expenses AS (
+                SELECT
+                    (e.expense_ts::date + (s.n || ' months')::interval)::timestamptz AS expense_ts,
+                    e.amount / e.installments AS amount
+                FROM public.expenses e, generate_series(0, e.installments - 1) AS s(n)
+                WHERE e.installments > 1
+                UNION ALL
+                SELECT expense_ts, amount
+                FROM public.expenses
+                WHERE installments IS NULL OR installments <= 1
+            )
+            SELECT COALESCE(SUM(amount), 0) FROM monthly_expenses
+            WHERE expense_ts::date BETWEEN %s AND %s
+        """
         async with await self._get_conn() as conn:
             cursor = await conn.execute(sql, (start_dt, end_dt))
             row = await cursor.fetchone()
@@ -118,10 +132,30 @@ class ExpenseRepository:
 
     def get_all_expenses_as_dataframe(self) -> pd.DataFrame:
         """
-        Fetches all expenses and returns them as a pandas DataFrame.
-        Uses a synchronous connection, ideal for pandas.read_sql_query.
+        Fetches all expenses, generating installment rows, and returns them as a pandas DataFrame.
         """
-        sql = "SELECT id, expense_ts, amount, description, method, tag, category, installments FROM public.expenses"
+        sql = """
+            WITH monthly_expenses AS (
+                SELECT
+                    id, expense_ts, amount, description, method, tag, category,
+                    1 AS installment_number,
+                    COALESCE(installments, 1) AS installments
+                FROM public.expenses
+                WHERE installments IS NULL OR installments <= 1
+                UNION ALL
+                SELECT
+                    e.id,
+                    (e.expense_ts::date + (s.n || ' months')::interval)::timestamptz,
+                    e.amount / e.installments,
+                    e.description || ' (' || s.n + 1 || '/' || e.installments || ')',
+                    e.method, e.tag, e.category,
+                    s.n + 1 AS installment_number,
+                    e.installments
+                FROM public.expenses e, generate_series(0, e.installments - 1) AS s(n)
+                WHERE e.installments > 1
+            )
+            SELECT * FROM monthly_expenses ORDER BY expense_ts DESC
+        """
         try:
             with psycopg.connect(self.dsn) as conn:
                 df = pd.read_sql_query(sql, conn, parse_dates=["expense_ts"])
@@ -141,9 +175,33 @@ class ExpenseRepository:
         self, start_date: date, end_date: date
     ) -> pd.DataFrame:
         """
-        Fetches expenses within a specific date range and returns them as a pandas DataFrame.
+        Fetches expenses within a date range, generating installment rows,
+        and returns them as a pandas DataFrame.
         """
-        sql = "SELECT id, expense_ts, amount, description, method, tag, category, installments FROM public.expenses WHERE expense_ts::date BETWEEN %s AND %s"
+        sql = """
+            WITH monthly_expenses AS (
+                SELECT
+                    id, expense_ts, amount, description, method, tag, category,
+                    1 AS installment_number,
+                    COALESCE(installments, 1) AS installments
+                FROM public.expenses
+                WHERE installments IS NULL OR installments <= 1
+                UNION ALL
+                SELECT
+                    e.id,
+                    (e.expense_ts::date + (s.n || ' months')::interval)::timestamptz,
+                    e.amount / e.installments,
+                    e.description || ' (' || s.n + 1 || '/' || e.installments || ')',
+                    e.method, e.tag, e.category,
+                    s.n + 1 AS installment_number,
+                    e.installments
+                FROM public.expenses e, generate_series(0, e.installments - 1) AS s(n)
+                WHERE e.installments > 1
+            )
+            SELECT * FROM monthly_expenses
+            WHERE expense_ts::date BETWEEN %s AND %s
+            ORDER BY expense_ts DESC
+        """
         try:
             with psycopg.connect(self.dsn) as conn:
                 df = pd.read_sql_query(
