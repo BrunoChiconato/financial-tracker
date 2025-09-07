@@ -1,7 +1,8 @@
 import streamlit as st
 import plotly.express as px
 import pandas as pd
-from datetime import timedelta
+from datetime import date, timedelta
+from dateutil.relativedelta import relativedelta
 from decimal import Decimal
 
 from src.storage.repository import ExpenseRepository
@@ -111,6 +112,47 @@ st.sidebar.header("Filtros")
 
 min_date = df_full["expense_ts"].min().date()
 max_date = df_full["expense_ts"].max().date()
+
+with st.sidebar.expander("Mês da Fatura", expanded=True):
+    use_invoice_month = st.checkbox("Usar Mês da Fatura", value=True)
+
+    def month_iter(start: date, end: date):
+        """Generate the first day of each month between start and end, inclusive."""
+        cur = date(start.year, start.month, 1)
+        end_m = date(end.year, end.month, 1)
+        while cur <= end_m:
+            yield cur
+            cur = cur + relativedelta(months=1)
+
+    invoice_months = list(month_iter(min_date, max_date))
+    month_labels = [m.strftime("%m/%Y") for m in invoice_months]
+
+    today = date.today()
+    cur_key = date(today.year, today.month, 1)
+    default_idx = (
+        invoice_months.index(cur_key)
+        if cur_key in invoice_months
+        else len(invoice_months) - 1
+    )
+    sel_idx = st.selectbox(
+        "Mês da Fatura",
+        options=range(len(invoice_months)),
+        index=max(0, default_idx),
+        format_func=lambda i: month_labels[i],
+    )
+    selected_month = invoice_months[sel_idx]
+
+
+def billing_cycle_range(year: int, month: int) -> tuple[date, date]:
+    """
+    Return the (start, end) of the billing cycle for a given month/year,
+    based on config.CYCLE_RESET_DAY (start and end inclusive).
+    """
+    start = date(year, month, 1) + relativedelta(day=config.CYCLE_RESET_DAY)
+    end = start + relativedelta(months=1, days=-1)
+    return start, end
+
+
 start_date = st.sidebar.date_input(
     "Data de Início", min_date, min_value=min_date, max_value=max_date
 )
@@ -121,6 +163,13 @@ end_date = st.sidebar.date_input(
 if start_date > end_date:
     st.sidebar.error("Data de início não pode ser maior que a data de fim.")
     st.stop()
+
+effective_start_date, effective_end_date = start_date, end_date
+
+if use_invoice_month:
+    effective_start_date, effective_end_date = billing_cycle_range(
+        selected_month.year, selected_month.month
+    )
 
 unique_categories = sorted(df_full["category"].unique())
 selected_categories = st.sidebar.multiselect(
@@ -133,8 +182,8 @@ selected_tags = st.sidebar.multiselect("Tags", options=unique_tags, default=uniq
 search_description = st.sidebar.text_input("Buscar na Descrição (contém)")
 
 df_current = df_full[
-    (df_full["expense_ts"].dt.date >= start_date)
-    & (df_full["expense_ts"].dt.date <= end_date)
+    (df_full["expense_ts"].dt.date >= effective_start_date)
+    & (df_full["expense_ts"].dt.date <= effective_end_date)
     & (df_full["category"].isin(selected_categories))
     & (df_full["tag"].isin(selected_tags))
 ]
@@ -143,9 +192,14 @@ if search_description:
         df_current["description"].str.contains(search_description, case=False, na=False)
     ]
 
-period_duration = end_date - start_date
-previous_end_date = start_date - timedelta(days=1)
-previous_start_date = previous_end_date - period_duration
+period_duration = effective_end_date - effective_start_date
+
+if use_invoice_month:
+    previous_start_date = effective_start_date - relativedelta(months=1)
+    previous_end_date = effective_end_date - relativedelta(months=1)
+else:
+    previous_end_date = effective_start_date - timedelta(days=1)
+    previous_start_date = previous_end_date - period_duration
 
 df_previous = load_data(previous_start_date, previous_end_date)
 if not df_previous.empty:
@@ -154,7 +208,15 @@ if not df_previous.empty:
         & (df_previous["tag"].isin(selected_tags))
     ]
 
-st.header(f"Análise do Período: {start_date:%d/%m/%Y} a {end_date:%d/%m/%Y}")
+if use_invoice_month:
+    st.header(
+        f"Análise — Mês da Fatura {selected_month:%m/%Y}: "
+        f"{effective_start_date:%d/%m/%Y} a {effective_end_date:%d/%m/%Y}"
+    )
+else:
+    st.header(
+        f"Análise do Período: {effective_start_date:%d/%m/%Y} a {effective_end_date:%d/%m/%Y}"
+    )
 
 if df_current.empty:
     st.info("Nenhum lançamento encontrado para os filtros selecionados.")
