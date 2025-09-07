@@ -64,7 +64,7 @@ class ExpenseRepository:
         sql = """
             WITH monthly_expenses AS (
                 SELECT
-                    (e.expense_ts::date + (s.n || ' months')::interval)::timestamptz AS expense_ts,
+                    e.expense_ts + (s.n || ' months')::interval AS expense_ts,
                     e.amount / e.installments AS amount
                 FROM public.expenses e, generate_series(0, e.installments - 1) AS s(n)
                 WHERE e.installments > 1
@@ -145,7 +145,7 @@ class ExpenseRepository:
                 UNION ALL
                 SELECT
                     e.id,
-                    (e.expense_ts::date + (s.n || ' months')::interval)::timestamptz,
+                    e.expense_ts + (s.n || ' months')::interval,
                     e.amount / e.installments,
                     e.description || ' (' || s.n + 1 || '/' || e.installments || ')',
                     e.method, e.tag, e.category,
@@ -189,7 +189,7 @@ class ExpenseRepository:
                 UNION ALL
                 SELECT
                     e.id,
-                    (e.expense_ts::date + (s.n || ' months')::interval)::timestamptz,
+                    e.expense_ts + (s.n || ' months')::interval,
                     e.amount / e.installments,
                     e.description || ' (' || s.n + 1 || '/' || e.installments || ')',
                     e.method, e.tag, e.category,
