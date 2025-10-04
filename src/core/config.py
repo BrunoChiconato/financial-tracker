@@ -2,6 +2,7 @@ import json
 import os
 import re
 import unicodedata
+from datetime import date
 from pathlib import Path
 
 
@@ -41,6 +42,10 @@ ALLOWED_USER_ID = int(os.getenv("ALLOWED_USER_ID", "0"))
 TZ = os.getenv("TZ", "America/Sao_Paulo")
 
 CYCLE_RESET_DAY = int(os.getenv("CYCLE_RESET_DAY", "10"))
+CYCLE_RESET_DAY_OLD = 4
+CYCLE_RESET_DAY_NEW = 17
+CYCLE_CHANGE_DATE = date(2025, 10, 4)
+CYCLE_TRANSITION_END_DATE = date(2025, 11, 16)
 
 ALLOWED_METHODS = _app_config.get("methods", {})
 ALLOWED_TAGS = _app_config.get("tags", {})

@@ -29,7 +29,7 @@ def load_data(start_date, end_date):
     return repo.get_expenses_in_range_as_dataframe(start_date, end_date)
 
 
-def format_currency(value):
+def format_currency(value: float | int | Decimal) -> str:
     """
     Formats a numeric value into a BRL currency string.
 
@@ -44,7 +44,7 @@ def format_currency(value):
     return f"R$ {value:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
 
 
-def calculate_mom(current_value, previous_value):
+def calculate_mom(current_value: float | Decimal, previous_value: float | Decimal) -> str:
     """
     Calculates the Month-over-Month (MoM) percentage change as a formatted string.
 
@@ -63,7 +63,7 @@ def calculate_mom(current_value, previous_value):
     return f" ({percentage:+.1f}%)"
 
 
-def highlight_variation(val):
+def highlight_variation(val: float) -> str:
     """
     Returns a CSS style to color the font based on the value.
 
@@ -145,11 +145,32 @@ with st.sidebar.expander("Mês da Fatura", expanded=True):
 
 def billing_cycle_range(year: int, month: int) -> tuple[date, date]:
     """
-    Return the (start, end) of the billing cycle for a given month/year,
-    based on config.CYCLE_RESET_DAY (start and end inclusive).
+    Return the (start, end) of the billing cycle for a given invoice month/year.
+
+    Invoice month represents the month when the cycle is typically due/analyzed.
+
+    Examples:
+    - Invoice month Sept 2025 → Aug 4 to Sept 3 (old logic)
+    - Invoice month Oct 2025 → Oct 4 to Nov 16 (transition cycle)
+    - Invoice month Nov 2025 → Nov 17 to Dec 16 (new logic)
+    - Invoice month Dec 2025 → Dec 17 to Jan 16 (new logic)
     """
-    start = date(year, month, 1) + relativedelta(day=config.CYCLE_RESET_DAY)
-    end = start + relativedelta(months=1, days=-1)
+    invoice_month = date(year, month, 1)
+
+    transition_invoice_month = config.CYCLE_TRANSITION_END_DATE.replace(day=1)
+    if invoice_month == transition_invoice_month:
+        return config.CYCLE_CHANGE_DATE, config.CYCLE_TRANSITION_END_DATE
+
+    change_month = config.CYCLE_CHANGE_DATE.replace(day=1)
+    if invoice_month >= change_month + relativedelta(months=1):
+        cycle_day = config.CYCLE_RESET_DAY_NEW
+        start = invoice_month + relativedelta(day=cycle_day)
+        end = start + relativedelta(months=1, days=-1)
+    else:
+        cycle_day = config.CYCLE_RESET_DAY_OLD
+        start = invoice_month + relativedelta(day=cycle_day)
+        end = start + relativedelta(months=1, days=-1)
+
     return start, end
 
 
@@ -329,7 +350,7 @@ st.dataframe(
             "Variação (%)": "{:+.1f}%",
         }
     )
-    .applymap(highlight_variation, subset=["Variação (R$)", "Variação (%)"])
+    .map(highlight_variation, subset=["Variação (R$)", "Variação (%)"])
 )
 
 st.divider()
