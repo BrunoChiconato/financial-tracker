@@ -23,4 +23,5 @@ dashboard = [
 ]
 dev = [
     "ruff>=0.1.11",
+    "pytest>=8.0.0",
 ]
