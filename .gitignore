@@ -176,3 +176,7 @@ source_code.md
 
 # DB Backups
 backup.sql
+*.dump
+
+# Claude Code
+.claude/
