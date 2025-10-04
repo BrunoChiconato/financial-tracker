@@ -37,7 +37,6 @@ services:
       TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
       ALLOWED_USER_ID: ${ALLOWED_USER_ID}
       TZ: ${TZ}
-      MONTHLY_CAP: ${MONTHLY_CAP:-1500.00}
       CYCLE_RESET_DAY: ${CYCLE_RESET_DAY:-10}
     command: ["python", "-u", "src/bot_service/app.py"]
     volumes:
@@ -78,7 +77,6 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
       TZ: ${TZ}
-      MONTHLY_CAP: ${MONTHLY_CAP:-1500.00}
       CYCLE_RESET_DAY: ${CYCLE_RESET_DAY:-10}
     ports:
       - "8501:8501"

@@ -2,7 +2,6 @@ import json
 import os
 import re
 import unicodedata
-from decimal import Decimal
 from pathlib import Path
 
 
@@ -41,7 +40,6 @@ if not TELEGRAM_BOT_TOKEN:
 ALLOWED_USER_ID = int(os.getenv("ALLOWED_USER_ID", "0"))
 TZ = os.getenv("TZ", "America/Sao_Paulo")
 
-MONTHLY_CAP = Decimal(os.getenv("MONTHLY_CAP", "1500.00"))
 CYCLE_RESET_DAY = int(os.getenv("CYCLE_RESET_DAY", "10"))
 
 ALLOWED_METHODS = _app_config.get("methods", {})

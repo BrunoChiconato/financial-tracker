@@ -46,6 +46,12 @@ up: env-check ## Start full stack detached
 down: ## Stop stack and remove volumes
 	@$(COMPOSE) -p $(PROJECT) down -v
 
+stop: ## Stop stack WITHOUT removing volumes (preserves data)
+	@$(COMPOSE) -p $(PROJECT) stop
+
+rebuild: ## Rebuild and restart services (preserves data)
+	@$(COMPOSE) -p $(PROJECT) up -d --build
+
 restart: ## Restart all services
 	@$(COMPOSE) -p $(PROJECT) restart
 

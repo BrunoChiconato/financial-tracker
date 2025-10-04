@@ -91,8 +91,7 @@ flowchart LR
       * `TELEGRAM_BOT_TOKEN`
       * `ALLOWED_USER_ID`
       * `TZ` (e.g., `America/Sao_Paulo`)
-      * `MONTHLY_CAP` (Monthly spending limit, e.g., `2000.00`)
-      * `CYCLE_RESET_DAY` (Day of the month when the spending cycle resets, e.g., `10`)
+      * `CYCLE_RESET_DAY` (Day of the month when the billing cycle resets, e.g., `10`)
 
 3.  **Start the application:**
     Use the Makefile to build and start all containers in the background.
@@ -141,7 +140,7 @@ Amount - Description - Method - Tag - Category [- Installments]
   * `/help`: Shows the guide on how to log expenses and the allowed values.
   * `/last`: Displays the last 5 logged entries.
   * `/undo`: Deletes the most recent entry.
-  * `/balance`: Shows the current cycle's balance (cap, spent, and remaining).
+  * `/balance`: Shows the current cycle's total spending (invoice month and period).
   * `/health`: Checks the connectivity with the database.
 
 ### 3. Analyzing on the Dashboard
@@ -151,7 +150,7 @@ Access **http://localhost:8501** to view the dashboard. There, you can:
   * Filter expenses by a date range (specific dates or billing month).
   * Filter by categories and tags.
   * Search by text in the description.
-  * View total spent, daily average, and remaining balance.
+  * View total spent and daily average.
   * Analyze charts of expenses by category and tag.
   * See a detailed table with all entries for the selected period.
 

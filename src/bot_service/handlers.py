@@ -47,7 +47,7 @@ async def cmd_help(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "/last: Mostra os 5 últimos lançamentos\n"
         "/undo: Apaga o último lançamento\n"
         "/health: Testa a conexão com o banco\n"
-        "/balance: Saldo do ciclo atual (mês, período e saldo)\n"
+        "/balance: Total gasto no ciclo atual (mês e período)\n"
         "/help: Exibe esta ajuda"
     )
     await update.message.reply_text(help_text, parse_mode="HTML")
@@ -122,21 +122,10 @@ async def on_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
         expense: "Expense" = parse_message(update.message.text.strip())
         expense_id = await repo.add_expense(expense)
 
-        today = date.today()
-        cycle_start = utils.get_cycle_start(today)
-        spent = await repo.get_total_spent_in_period(cycle_start, today)
-        remaining = config.MONTHLY_CAP - spent
-        if remaining >= 0:
-            balance_line = f"💵 Saldo restante do mês: {utils.brl(remaining)}"
-        else:
-            overage = -remaining
-            balance_line = f"💸 Você ultrapassou o teto do mês em: {utils.brl(overage)}"
-
         safe_description = utils.escape_markdown_v2(expense.description)
         safe_tag = utils.escape_markdown_v2(expense.tag)
         safe_category = utils.escape_markdown_v2(expense.category)
         safe_method = utils.escape_markdown_v2(expense.method)
-        safe_balance_line = utils.escape_markdown_v2(balance_line)
 
         table_lines = [
             f"{'ID':<11}: {expense_id}",
@@ -153,7 +142,7 @@ async def on_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
         table_str = "\n".join(table_lines)
 
         await update.message.reply_text(
-            f"✅ Lançamento Registrado\n\n```\n{table_str}\n```\n\n{safe_balance_line}",
+            f"✅ Lançamento Registrado\n\n```\n{table_str}\n```",
             parse_mode="MarkdownV2",
         )
 
@@ -175,8 +164,6 @@ async def cmd_balance(update: Update, context: ContextTypes.DEFAULT_TYPE):
     start, end = cycle["start"], cycle["end"]
 
     spent = await repo.get_total_spent_in_period(start, today)
-    cap = config.MONTHLY_CAP
-    remaining = cap - spent
 
     months = [
         "",
@@ -199,18 +186,11 @@ async def cmd_balance(update: Update, context: ContextTypes.DEFAULT_TYPE):
     start_s = start.strftime("%d/%m/%Y")
     end_s = end.strftime("%d/%m/%Y")
 
-    if remaining >= 0:
-        balance_msg = f"💵 Saldo restante: {utils.brl(remaining)}"
-    else:
-        balance_msg = f"💸 Teto excedido em: {utils.brl(-remaining)}"
-
     msg_text = (
         "<b>📊 Balanço do Ciclo Atual</b>\n\n"
         f"• Mês da fatura: <b>{invoice_month_name}</b> ({invoice_month_number})\n"
         f"• Período: <b>{start_s}</b> a <b>{end_s}</b>\n"
-        f"• Teto: <b>{utils.brl(cap)}</b>\n"
-        f"• Gasto até hoje: <b>{utils.brl(spent)}</b>\n\n"
-        f"{balance_msg}"
+        f"• Gasto até hoje: <b>{utils.brl(spent)}</b>"
     )
 
     await update.message.reply_text(msg_text, parse_mode="HTML")

@@ -233,58 +233,15 @@ num_days_previous = period_duration.days + 1
 avg_daily_previous = total_spent_previous / num_days_previous
 mom_avg_daily = calculate_mom(avg_daily_current, avg_daily_previous)
 
-monthly_cap = config.MONTHLY_CAP
-remaining_cap = monthly_cap - total_spent_current
-spent_percentage = (
-    min(float(total_spent_current / monthly_cap), 1.0) if monthly_cap > 0 else 0.0
-)
-
-col1, col2, col3, col4, col5 = st.columns(5)
+col1, col2, col3 = st.columns(3)
 col1.metric(
     "Total Gasto no Período",
     format_currency(total_spent_current),
     delta=mom_total,
     help=f"Comparado com {previous_start_date:%d/%m} a {previous_end_date:%d/%m}",
 )
-col2.metric(
-    "Teto de Gastos",
-    format_currency(monthly_cap),
-    help="Seu limite de gastos definido na configuração.",
-)
-if remaining_cap >= 0:
-    col3.metric(
-        "Saldo Restante",
-        format_currency(remaining_cap),
-        help="Quanto ainda resta para atingir o teto.",
-    )
-else:
-    col3.metric(
-        "Teto Excedido em",
-        format_currency(abs(remaining_cap)),
-        delta_color="inverse",
-        help="Valor gasto além do seu teto.",
-    )
-col4.metric("Média Diária", format_currency(avg_daily_current), delta=mom_avg_daily)
-col5.metric("Nº de Lançamentos", str(len(df_current)))
-
-if spent_percentage < 1 / 3:
-    progress_bar_color = "green"
-elif spent_percentage < 2 / 3:
-    progress_bar_color = "orange"
-else:
-    progress_bar_color = "red"
-
-st.progress(spent_percentage, text=f"{spent_percentage:.1%}")
-
-st.markdown(
-    f"""
-    <style>
-        .stProgress > div > div > div > div {{
-            background-color: {progress_bar_color};
-        }}
-    </style>""",
-    unsafe_allow_html=True,
-)
+col2.metric("Média Diária", format_currency(avg_daily_current), delta=mom_avg_daily)
+col3.metric("Nº de Lançamentos", str(len(df_current)))
 
 st.divider()
 
