@@ -1,12 +1,15 @@
 from datetime import date
 from decimal import Decimal
 from typing import Optional, List
+import logging
 
 import psycopg
 import pandas as pd
 
 from src.core import config
 from src.core.models import Expense
+
+log = logging.getLogger(__name__)
 
 
 class ExpenseRepository:
@@ -24,8 +27,20 @@ class ExpenseRepository:
         )
 
     async def _get_conn(self) -> psycopg.AsyncConnection:
-        """Establishes an asynchronous, autocommit connection to the database."""
-        return await psycopg.AsyncConnection.connect(self.dsn, autocommit=True)
+        """
+        Establishes an asynchronous, autocommit connection to the database.
+
+        Returns:
+            An async database connection with autocommit enabled.
+
+        Raises:
+            psycopg.OperationalError: If connection fails or times out.
+        """
+        return await psycopg.AsyncConnection.connect(
+            self.dsn,
+            autocommit=True,
+            connect_timeout=10
+        )
 
     async def add_expense(self, expense: Expense) -> int:
         """
@@ -168,7 +183,7 @@ class ExpenseRepository:
 
             return df
         except psycopg.Error as e:
-            print(f"Database connection error in dashboard: {e}")
+            log.error(f"Database connection error in get_all_expenses_as_dataframe: {e}", exc_info=True)
             return pd.DataFrame()
 
     def get_expenses_in_range_as_dataframe(
@@ -215,5 +230,5 @@ class ExpenseRepository:
                 df["expense_ts"] = df["expense_ts"].dt.tz_convert(config.TZ)
             return df
         except psycopg.Error as e:
-            print(f"Database connection error in dashboard: {e}")
+            log.error(f"Database connection error in get_expenses_in_range_as_dataframe: {e}", exc_info=True)
             return pd.DataFrame()
