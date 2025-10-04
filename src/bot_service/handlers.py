@@ -19,12 +19,32 @@ repo = ExpenseRepository()
 
 
 async def ensure_auth(update: Update) -> bool:
-    """Checks if the user is authorized to use the bot."""
-    uid = update.effective_user.id if update.effective_user else 0
-    if config.ALLOWED_USER_ID and uid != config.ALLOWED_USER_ID:
+    """
+    Checks if the user is authorized to use the bot.
+
+    Args:
+        update: The Telegram update object containing user information.
+
+    Returns:
+        True if user is authorized, False otherwise.
+
+    Raises:
+        None - sends rejection message to unauthorized users.
+    """
+    uid = update.effective_user.id if update.effective_user else None
+
+    if config.ALLOWED_USER_ID is None or config.ALLOWED_USER_ID <= 0:
+        log.error("ALLOWED_USER_ID not configured properly. Denying all access.")
+        if update.message:
+            await update.message.reply_text("Bot não configurado corretamente.")
+        return False
+
+    if uid is None or uid != config.ALLOWED_USER_ID:
+        log.warning(f"Unauthorized access attempt from user ID: {uid}")
         if update.message:
             await update.message.reply_text("Usuário não autorizado.")
         return False
+
     return True
 
 
