@@ -37,9 +37,7 @@ class ExpenseRepository:
             psycopg.OperationalError: If connection fails or times out.
         """
         return await psycopg.AsyncConnection.connect(
-            self.dsn,
-            autocommit=True,
-            connect_timeout=10
+            self.dsn, autocommit=True, connect_timeout=10
         )
 
     async def add_expense(self, expense: Expense) -> int:
@@ -75,15 +73,45 @@ class ExpenseRepository:
     async def get_total_spent_in_period(self, start_dt: date, end_dt: date) -> Decimal:
         """
         Calculates the sum of expenses within a given date range, considering installments.
+
+        Installments are distributed across billing cycles based on the original purchase date.
+        Purchases on/after Oct 4, 2025 follow the new cycle (17th-16th), while purchases
+        before follow the old cycle (4th-3rd).
         """
         sql = """
-            WITH monthly_expenses AS (
+            WITH RECURSIVE installment_cycles AS (
                 SELECT
-                    e.expense_ts + (s.n || ' months')::interval AS expense_ts,
-                    e.amount / e.installments AS amount
-                FROM public.expenses e, generate_series(0, e.installments - 1) AS s(n)
-                WHERE e.installments > 1
+                    id,
+                    expense_ts,
+                    amount / installments AS installment_amount,
+                    installments,
+                    1 AS installment_number,
+                    expense_ts AS current_ts
+                FROM public.expenses
+                WHERE installments > 1
+
                 UNION ALL
+
+                SELECT
+                    ic.id,
+                    ic.expense_ts,
+                    ic.installment_amount,
+                    ic.installments,
+                    ic.installment_number + 1,
+                    CASE
+                        WHEN ic.current_ts::date >= DATE '2025-10-04' AND ic.current_ts::date < DATE '2025-11-17'
+                        THEN DATE '2025-11-17' + (ic.current_ts::time)
+                        ELSE ic.current_ts + INTERVAL '1 month'
+                    END
+                FROM installment_cycles ic
+                WHERE ic.installment_number < ic.installments
+            ),
+            monthly_expenses AS (
+                SELECT current_ts AS expense_ts, installment_amount AS amount
+                FROM installment_cycles
+
+                UNION ALL
+
                 SELECT expense_ts, amount
                 FROM public.expenses
                 WHERE installments IS NULL OR installments <= 1
@@ -148,26 +176,74 @@ class ExpenseRepository:
     def get_all_expenses_as_dataframe(self) -> pd.DataFrame:
         """
         Fetches all expenses, generating installment rows, and returns them as a pandas DataFrame.
+
+        Installments are distributed across billing cycles by adding the appropriate
+        number of days to align with the next cycle start dates. This handles the
+        transition from 4th-3rd cycles to 17th-16th cycles starting Oct 4, 2025.
         """
         sql = """
-            WITH monthly_expenses AS (
+            WITH RECURSIVE installment_cycles AS (
                 SELECT
-                    id, expense_ts, amount, description, method, tag, category,
+                    id,
+                    expense_ts,
+                    amount / installments AS installment_amount,
+                    description,
+                    method,
+                    tag,
+                    category,
+                    installments,
+                    1 AS installment_number,
+                    expense_ts AS current_ts
+                FROM public.expenses
+                WHERE installments > 1
+
+                UNION ALL
+
+                SELECT
+                    ic.id,
+                    ic.expense_ts,
+                    ic.installment_amount,
+                    ic.description,
+                    ic.method,
+                    ic.tag,
+                    ic.category,
+                    ic.installments,
+                    ic.installment_number + 1,
+                    CASE
+                        WHEN ic.current_ts::date >= DATE '2025-10-04' AND ic.current_ts::date < DATE '2025-11-17'
+                        THEN DATE '2025-11-17' + (ic.current_ts::time)
+                        ELSE ic.current_ts + INTERVAL '1 month'
+                    END
+                FROM installment_cycles ic
+                WHERE ic.installment_number < ic.installments
+            ),
+            monthly_expenses AS (
+                SELECT
+                    id,
+                    current_ts AS expense_ts,
+                    installment_amount AS amount,
+                    description || ' (' || installment_number || '/' || installments || ')' AS description,
+                    method,
+                    tag,
+                    category,
+                    installment_number,
+                    installments
+                FROM installment_cycles
+
+                UNION ALL
+
+                SELECT
+                    id,
+                    expense_ts,
+                    amount,
+                    description,
+                    method,
+                    tag,
+                    category,
                     1 AS installment_number,
                     COALESCE(installments, 1) AS installments
                 FROM public.expenses
                 WHERE installments IS NULL OR installments <= 1
-                UNION ALL
-                SELECT
-                    e.id,
-                    e.expense_ts + (s.n || ' months')::interval,
-                    e.amount / e.installments,
-                    e.description || ' (' || s.n + 1 || '/' || e.installments || ')',
-                    e.method, e.tag, e.category,
-                    s.n + 1 AS installment_number,
-                    e.installments
-                FROM public.expenses e, generate_series(0, e.installments - 1) AS s(n)
-                WHERE e.installments > 1
             )
             SELECT * FROM monthly_expenses ORDER BY expense_ts DESC
         """
@@ -183,7 +259,10 @@ class ExpenseRepository:
 
             return df
         except psycopg.Error as e:
-            log.error(f"Database connection error in get_all_expenses_as_dataframe: {e}", exc_info=True)
+            log.error(
+                f"Database connection error in get_all_expenses_as_dataframe: {e}",
+                exc_info=True,
+            )
             return pd.DataFrame()
 
     def get_expenses_in_range_as_dataframe(
@@ -192,26 +271,74 @@ class ExpenseRepository:
         """
         Fetches expenses within a date range, generating installment rows,
         and returns them as a pandas DataFrame.
+
+        Installments are distributed across billing cycles by adding the appropriate
+        number of days to align with the next cycle start dates. This handles the
+        transition from 4th-3rd cycles to 17th-16th cycles starting Oct 4, 2025.
         """
         sql = """
-            WITH monthly_expenses AS (
+            WITH RECURSIVE installment_cycles AS (
                 SELECT
-                    id, expense_ts, amount, description, method, tag, category,
+                    id,
+                    expense_ts,
+                    amount / installments AS installment_amount,
+                    description,
+                    method,
+                    tag,
+                    category,
+                    installments,
+                    1 AS installment_number,
+                    expense_ts AS current_ts
+                FROM public.expenses
+                WHERE installments > 1
+
+                UNION ALL
+
+                SELECT
+                    ic.id,
+                    ic.expense_ts,
+                    ic.installment_amount,
+                    ic.description,
+                    ic.method,
+                    ic.tag,
+                    ic.category,
+                    ic.installments,
+                    ic.installment_number + 1,
+                    CASE
+                        WHEN ic.current_ts::date >= DATE '2025-10-04' AND ic.current_ts::date < DATE '2025-11-17'
+                        THEN DATE '2025-11-17' + (ic.current_ts::time)
+                        ELSE ic.current_ts + INTERVAL '1 month'
+                    END
+                FROM installment_cycles ic
+                WHERE ic.installment_number < ic.installments
+            ),
+            monthly_expenses AS (
+                SELECT
+                    id,
+                    current_ts AS expense_ts,
+                    installment_amount AS amount,
+                    description || ' (' || installment_number || '/' || installments || ')' AS description,
+                    method,
+                    tag,
+                    category,
+                    installment_number,
+                    installments
+                FROM installment_cycles
+
+                UNION ALL
+
+                SELECT
+                    id,
+                    expense_ts,
+                    amount,
+                    description,
+                    method,
+                    tag,
+                    category,
                     1 AS installment_number,
                     COALESCE(installments, 1) AS installments
                 FROM public.expenses
                 WHERE installments IS NULL OR installments <= 1
-                UNION ALL
-                SELECT
-                    e.id,
-                    e.expense_ts + (s.n || ' months')::interval,
-                    e.amount / e.installments,
-                    e.description || ' (' || s.n + 1 || '/' || e.installments || ')',
-                    e.method, e.tag, e.category,
-                    s.n + 1 AS installment_number,
-                    e.installments
-                FROM public.expenses e, generate_series(0, e.installments - 1) AS s(n)
-                WHERE e.installments > 1
             )
             SELECT * FROM monthly_expenses
             WHERE expense_ts::date BETWEEN %s AND %s
@@ -230,5 +357,8 @@ class ExpenseRepository:
                 df["expense_ts"] = df["expense_ts"].dt.tz_convert(config.TZ)
             return df
         except psycopg.Error as e:
-            log.error(f"Database connection error in get_expenses_in_range_as_dataframe: {e}", exc_info=True)
+            log.error(
+                f"Database connection error in get_expenses_in_range_as_dataframe: {e}",
+                exc_info=True,
+            )
             return pd.DataFrame()
