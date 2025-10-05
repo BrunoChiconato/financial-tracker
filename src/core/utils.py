@@ -70,7 +70,9 @@ def get_current_and_previous_cycle_dates(today: date) -> dict[str, dict[str, dat
         current_cycle_start = config.CYCLE_CHANGE_DATE
         current_cycle_end = config.CYCLE_TRANSITION_END_DATE
         previous_cycle_end = config.CYCLE_CHANGE_DATE - relativedelta(days=1)
-        previous_cycle_start = previous_cycle_end - relativedelta(months=1) + relativedelta(days=1)
+        previous_cycle_start = (
+            previous_cycle_end - relativedelta(months=1) + relativedelta(days=1)
+        )
     elif today > config.CYCLE_TRANSITION_END_DATE:
         cycle_day = config.CYCLE_RESET_DAY_NEW
 
@@ -85,7 +87,9 @@ def get_current_and_previous_cycle_dates(today: date) -> dict[str, dict[str, dat
             current_cycle_end + relativedelta(days=1)
         ) - relativedelta(months=1)
 
-        transition_next_cycle_start = config.CYCLE_TRANSITION_END_DATE + relativedelta(days=1)
+        transition_next_cycle_start = config.CYCLE_TRANSITION_END_DATE + relativedelta(
+            days=1
+        )
         if current_cycle_start == transition_next_cycle_start:
             previous_cycle_start = config.CYCLE_CHANGE_DATE
             previous_cycle_end = config.CYCLE_TRANSITION_END_DATE

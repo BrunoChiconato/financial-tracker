@@ -8,7 +8,6 @@ Tests verify that:
 4. Edge cases around the transition date are handled properly
 """
 
-import pytest
 from datetime import date
 from dateutil.relativedelta import relativedelta
 from src.core.utils import (
