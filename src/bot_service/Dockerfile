@@ -16,4 +16,10 @@ RUN pip install --upgrade pip \
 
 COPY src/ /app/src/
 
+RUN groupadd -g 1001 appuser && \
+    useradd -r -u 1001 -g appuser appuser && \
+    chown -R appuser:appuser /app
+
+USER 1001:1001
+
 CMD ["python", "-u", "src/bot_service/app.py"]
