@@ -44,7 +44,9 @@ def format_currency(value: float | int | Decimal) -> str:
     return f"R$ {value:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
 
 
-def calculate_mom(current_value: float | Decimal, previous_value: float | Decimal) -> str:
+def calculate_mom(
+    current_value: float | Decimal, previous_value: float | Decimal
+) -> str:
     """
     Calculates the Month-over-Month (MoM) percentage change as a formatted string.
 
@@ -124,7 +126,35 @@ with st.sidebar.expander("Mês da Fatura", expanded=True):
             yield cur
             cur = cur + relativedelta(months=1)
 
-    invoice_months = list(month_iter(min_date, max_date))
+    def get_invoice_month_for_date(expense_date: date) -> date:
+        """
+        Returns the invoice month (as first day of month) for a given expense date.
+
+        The invoice month is the month when the billing cycle containing this
+        expense ends (when the bill is due).
+        """
+        if expense_date < config.CYCLE_CHANGE_DATE:
+            if expense_date.day >= config.CYCLE_RESET_DAY_OLD:
+                return (expense_date + relativedelta(months=1)).replace(day=1)
+            else:
+                return expense_date.replace(day=1)
+
+        if expense_date <= config.CYCLE_TRANSITION_END_DATE:
+            return date(2025, 11, 1)
+
+        if expense_date.day >= config.CYCLE_RESET_DAY_NEW:
+            return (expense_date + relativedelta(months=1)).replace(day=1)
+        else:
+            return expense_date.replace(day=1)
+
+    df_full_temp = df_full.copy()
+    df_full_temp["invoice_month"] = df_full_temp["expense_ts"].dt.date.apply(
+        get_invoice_month_for_date
+    )
+    min_invoice_month = df_full_temp["invoice_month"].min()
+    max_invoice_month = df_full_temp["invoice_month"].max()
+
+    invoice_months = list(month_iter(min_invoice_month, max_invoice_month))
     month_labels = [m.strftime("%m/%Y") for m in invoice_months]
 
     today = date.today()
@@ -147,13 +177,15 @@ def billing_cycle_range(year: int, month: int) -> tuple[date, date]:
     """
     Return the (start, end) of the billing cycle for a given invoice month/year.
 
-    Invoice month represents the month when the cycle is typically due/analyzed.
+    Invoice month represents the month when the cycle ends (when the bill is due).
+    The cycle starts in the previous month and ends in the invoice month.
 
     Examples:
     - Invoice month Sept 2025 → Aug 4 to Sept 3 (old logic)
-    - Invoice month Oct 2025 → Oct 4 to Nov 16 (transition cycle)
-    - Invoice month Nov 2025 → Nov 17 to Dec 16 (new logic)
-    - Invoice month Dec 2025 → Dec 17 to Jan 16 (new logic)
+    - Invoice month Oct 2025 → Sept 4 to Oct 3 (old logic, last old cycle)
+    - Invoice month Nov 2025 → Oct 4 to Nov 16 (transition cycle)
+    - Invoice month Dec 2025 → Nov 17 to Dec 16 (new logic)
+    - Invoice month Jan 2026 → Dec 17 to Jan 16 (new logic)
     """
     invoice_month = date(year, month, 1)
 
@@ -164,12 +196,12 @@ def billing_cycle_range(year: int, month: int) -> tuple[date, date]:
     change_month = config.CYCLE_CHANGE_DATE.replace(day=1)
     if invoice_month >= change_month + relativedelta(months=1):
         cycle_day = config.CYCLE_RESET_DAY_NEW
-        start = invoice_month + relativedelta(day=cycle_day)
-        end = start + relativedelta(months=1, days=-1)
+        end = invoice_month + relativedelta(day=cycle_day - 1)
+        start = end - relativedelta(months=1) + relativedelta(days=1)
     else:
         cycle_day = config.CYCLE_RESET_DAY_OLD
-        start = invoice_month + relativedelta(day=cycle_day)
-        end = start + relativedelta(months=1, days=-1)
+        end = invoice_month + relativedelta(day=cycle_day - 1)
+        start = end - relativedelta(months=1) + relativedelta(days=1)
 
     return start, end
 
