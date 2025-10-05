@@ -10,6 +10,7 @@ dependencies = [
     "python-dateutil==2.9.0.post0",
     "uv>=0.8.11",
     "pandas==2.2.3",
+    "ruff>=0.12.11",
 ]
 
 [project.optional-dependencies]
