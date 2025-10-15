@@ -1,0 +1,17 @@
+{
+  "includeCoAuthoredBy": false,
+  "permissions": {
+    "allow": [
+      "Read", "Grep", "Glob",
+      "Bash(ruff check:*)",
+      "Bash(ruff format --check:*)",
+      "Bash(mypy:*)",
+      "Bash(bandit:*)",
+      "Bash(pydocstyle:*)"
+    ],
+    "ask": [
+      "Bash(pytest:*)", "Bash(rm:*)", "Bash(sudo:*)", "Bash(curl:*)",
+      "Bash(wget:*)", "Read(./.env)", "Read(./.env.*)", "Read(./secrets/**)"
+    ]
+  }
+}
