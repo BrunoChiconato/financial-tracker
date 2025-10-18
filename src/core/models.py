@@ -1,3 +1,10 @@
+"""
+Core Data Models Module.
+
+Defines the data structures used throughout the Financial Tracker application.
+The Expense dataclass serves as the central data contract between all layers.
+"""
+
 from dataclasses import dataclass, field
 from datetime import datetime
 from decimal import Decimal

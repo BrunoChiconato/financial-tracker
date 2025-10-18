@@ -1,3 +1,24 @@
+"""
+Streamlit Dashboard Application Module.
+
+Interactive web dashboard for visualizing and analyzing expense data.
+Provides filtering by billing cycles (invoice months), date ranges, categories,
+and tags. Includes visualizations, MoM comparisons, and detailed expense tables.
+
+This is the legacy dashboard interface. The modern React dashboard is available
+at http://localhost:5173 and provides enhanced UX and performance.
+
+Key Features:
+    - Invoice month filtering with billing cycle transition support
+    - Custom date range selection
+    - Category and tag multi-select filters
+    - Description text search
+    - Summary metrics with MoM comparisons
+    - Interactive charts (category and tag breakdowns)
+    - MoM trends table with color-coded variations
+    - Detailed sortable expense table
+"""
+
 import streamlit as st
 import plotly.express as px
 import pandas as pd
@@ -119,7 +140,19 @@ with st.sidebar.expander("Mês da Fatura", expanded=True):
     use_invoice_month = st.checkbox("Usar Mês da Fatura", value=True)
 
     def month_iter(start: date, end: date):
-        """Generate the first day of each month between start and end, inclusive."""
+        """
+        Generates the first day of each month between start and end dates.
+
+        Yields date objects for the first day of each month in the range,
+        inclusive of both start and end months.
+
+        Args:
+            start: Start date (any day of the starting month).
+            end: End date (any day of the ending month).
+
+        Yields:
+            date: First day of each month in the range.
+        """
         cur = date(start.year, start.month, 1)
         end_m = date(end.year, end.month, 1)
         while cur <= end_m:
@@ -130,8 +163,20 @@ with st.sidebar.expander("Mês da Fatura", expanded=True):
         """
         Returns the invoice month (as first day of month) for a given expense date.
 
-        The invoice month is the month when the billing cycle containing this
-        expense ends (when the bill is due).
+        The invoice month represents the month when the billing cycle containing
+        this expense ends (when the bill is due). Handles the transition from
+        old billing cycle (4th-3rd) to new cycle (17th-16th) starting Oct 4, 2025.
+
+        Transition logic:
+            - Before Oct 4, 2025: Uses old cycle (4th-3rd)
+            - Oct 4 - Nov 16, 2025: Transition cycle (invoice month: Nov 2025)
+            - From Nov 17, 2025: Uses new cycle (17th-16th)
+
+        Args:
+            expense_date: The date of the expense.
+
+        Returns:
+            date: First day of the invoice month for this expense.
         """
         if expense_date < config.CYCLE_CHANGE_DATE:
             if expense_date.day >= config.CYCLE_RESET_DAY_OLD:

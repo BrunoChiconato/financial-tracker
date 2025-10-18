@@ -1,3 +1,10 @@
+"""
+Telegram Bot Application Module.
+
+This module initializes and starts the Telegram bot for the Financial Tracker.
+It registers all command handlers and message handlers for expense tracking.
+"""
+
 import logging
 
 from telegram import Update
@@ -13,7 +20,23 @@ log = logging.getLogger(__name__)
 
 
 def main():
-    """Starts the Telegram bot."""
+    """
+    Initializes and starts the Telegram bot.
+
+    Configures all command and message handlers, then starts polling for updates.
+    Requires TELEGRAM_BOT_TOKEN to be set in environment variables.
+
+    Handlers registered:
+        - /help: Display usage instructions
+        - /health: Check database connectivity
+        - /last: Show last 5 expenses
+        - /undo: Delete most recent expense
+        - /balance: Show current billing cycle spending
+        - Text messages: Parse and store expenses
+
+    Returns:
+        None
+    """
     if not config.TELEGRAM_BOT_TOKEN:
         log.error("TELEGRAM_BOT_TOKEN is not set. Bot cannot start.")
         return

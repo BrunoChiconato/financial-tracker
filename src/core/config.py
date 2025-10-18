@@ -1,3 +1,11 @@
+"""
+Application Configuration Module.
+
+Loads environment variables, application settings, and allowed values from
+the configuration file. Defines all constants used throughout the application
+including database credentials, billing cycle dates, and validation rules.
+"""
+
 import json
 import os
 import re
@@ -7,14 +15,36 @@ from pathlib import Path
 
 
 def _strip_accents_lower(s: str) -> str:
-    """Normalize accents, remove extra whitespace, and lowercase a string."""
+    """
+    Normalizes accents, removes extra whitespace, and lowercases a string.
+
+    Used for case-insensitive and accent-insensitive matching of categories,
+    tags, and payment methods.
+
+    Args:
+        s: The input string to normalize.
+
+    Returns:
+        Normalized, lowercased string without accents.
+    """
     n = unicodedata.normalize("NFKD", s)
     n = "".join(ch for ch in n if not unicodedata.combining(ch))
     return re.sub(r"\s+", " ", n).strip().lower()
 
 
 def _load_app_config() -> dict:
-    """Loads lists like categories, tags, and methods from an external JSON file."""
+    """
+    Loads allowed values for categories, tags, and methods from the config file.
+
+    Attempts to load from /app/config/categories.json (Docker path) first,
+    then falls back to the local development path if not found.
+
+    Returns:
+        Dictionary containing methods, tags, and categories_display lists.
+
+    Raises:
+        FileNotFoundError: If the configuration file cannot be found.
+    """
     config_path = Path("/app/config/categories.json")
     if not config_path.exists():
         config_path = Path(__file__).parent.parent.parent / "config" / "categories.json"

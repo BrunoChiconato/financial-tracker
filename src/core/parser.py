@@ -1,3 +1,11 @@
+"""
+Message Parsing and Validation Module.
+
+Handles parsing of user-provided text messages into structured Expense objects.
+Includes validation functions for payment methods, tags, categories, and
+formatting functions for Brazilian currency and title-casing in Portuguese.
+"""
+
 import re
 from decimal import Decimal, InvalidOperation
 
@@ -6,7 +14,18 @@ from src.core.models import Expense
 
 
 def titleize_pt(s: str) -> str:
-    """Title-case for Portuguese, keeping common connectives in lowercase."""
+    """
+    Converts a string to title case following Portuguese grammar rules.
+
+    Common Portuguese connectives (de, da, do, e, em, etc.) are kept in lowercase
+    unless they appear as the first word.
+
+    Args:
+        s: The input string to title-case.
+
+    Returns:
+        Title-cased string with proper Portuguese grammar.
+    """
     words = re.split(r"(\s+|-)", s.strip().lower())
     output, is_first = [], True
     for token in words:
@@ -22,7 +41,21 @@ def titleize_pt(s: str) -> str:
 
 
 def canon_method(raw: str) -> str:
-    """Finds the canonical payment method from a raw string."""
+    """
+    Finds and returns the canonical payment method from a raw string.
+
+    Performs case-insensitive and accent-insensitive matching against
+    allowed payment methods (Pix, Cartão de Crédito, Cartão de Débito, Boleto).
+
+    Args:
+        raw: The raw payment method string from user input.
+
+    Returns:
+        The canonical payment method name.
+
+    Raises:
+        ValueError: If the payment method is not recognized.
+    """
     key = config._strip_accents_lower(raw)
     if key in config.ALLOWED_METHODS:
         return config.ALLOWED_METHODS[key]
@@ -32,7 +65,21 @@ def canon_method(raw: str) -> str:
 
 
 def canon_tag(raw: str) -> str:
-    """Finds the canonical tag from a raw string."""
+    """
+    Finds and returns the canonical tag from a raw string.
+
+    Performs case-insensitive and accent-insensitive matching against
+    allowed tags (Gastos Pessoais, Gastos do Casal, Gastos de Casa).
+
+    Args:
+        raw: The raw tag string from user input.
+
+    Returns:
+        The canonical tag name.
+
+    Raises:
+        ValueError: If the tag is not recognized.
+    """
     key = config._strip_accents_lower(raw)
     if key in config.ALLOWED_TAGS:
         return config.ALLOWED_TAGS[key]
@@ -42,7 +89,21 @@ def canon_tag(raw: str) -> str:
 
 
 def canon_category(raw: str) -> str:
-    """Finds the canonical category from a raw string."""
+    """
+    Finds and returns the canonical category from a raw string.
+
+    Performs case-insensitive and accent-insensitive matching against
+    the configured list of allowed categories.
+
+    Args:
+        raw: The raw category string from user input.
+
+    Returns:
+        The canonical category name.
+
+    Raises:
+        ValueError: If the category is not recognized.
+    """
     key = config._strip_accents_lower(raw)
     if key in config.ALLOWED_CATEGORIES:
         return config.ALLOWED_CATEGORIES[key]
@@ -51,7 +112,24 @@ def canon_category(raw: str) -> str:
 
 
 def br_to_decimal(s: str) -> Decimal:
-    """Parses Brazilian currency-like strings into a Decimal."""
+    """
+    Parses Brazilian currency format strings into a Decimal.
+
+    Handles formats like:
+    - "1.234,56" (Brazilian format with thousand separator)
+    - "1234,56" (Brazilian format without thousand separator)
+    - "R$ 1.234,56" (with currency symbol)
+    - "35,50" (simple decimal format)
+
+    Args:
+        s: The currency string to parse.
+
+    Returns:
+        Decimal value quantized to 2 decimal places.
+
+    Raises:
+        ValueError: If the string cannot be parsed as a valid currency value.
+    """
     text = s.strip()
     text = re.sub(r"[Rr]\$\s?", "", text)
 

@@ -1,3 +1,11 @@
+"""
+Core Utility Functions Module.
+
+Provides utility functions for billing cycle calculations, currency formatting,
+and text escaping for Telegram messages. Handles the complex billing cycle
+transition logic from old (4th-3rd) to new (17th-16th) schedules.
+"""
+
 import re
 from datetime import date, timedelta
 from dateutil.relativedelta import relativedelta
@@ -31,6 +39,12 @@ def get_cycle_start(today: date) -> date:
     Handles the transition from old billing cycle (4th-3rd) to new cycle
     (17th-16th) starting October 4, 2025, with a transition cycle from
     Oct 4 to Nov 16, 2025.
+
+    Args:
+        today: The reference date for which to calculate the cycle start.
+
+    Returns:
+        The start date of the billing cycle containing the given date.
     """
     if config.CYCLE_CHANGE_DATE <= today <= config.CYCLE_TRANSITION_END_DATE:
         return config.CYCLE_CHANGE_DATE
@@ -49,12 +63,34 @@ def get_cycle_start(today: date) -> date:
 
 
 def brl(v: Decimal) -> str:
-    """Formats a Decimal value into a BRL currency string."""
+    """
+    Formats a Decimal value into a Brazilian Real currency string.
+
+    Converts decimal values to the Brazilian format with thousand separators
+    and comma as decimal separator (e.g., "R$ 1.234,56").
+
+    Args:
+        v: The decimal value to format.
+
+    Returns:
+        Formatted currency string in BRL format.
+    """
     return f"R$ {v:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
 
 
 def escape_markdown_v2(text: str) -> str:
-    """Escapes special characters for Telegram's MarkdownV2 parse mode."""
+    """
+    Escapes special characters for Telegram's MarkdownV2 parse mode.
+
+    Telegram MarkdownV2 requires certain characters to be escaped with a backslash.
+    This function handles all special characters that need escaping.
+
+    Args:
+        text: The text to escape.
+
+    Returns:
+        Text with all special MarkdownV2 characters escaped.
+    """
     escape_chars = r"[_*\[\]()~`>#+-=|{}.!]"
     return re.sub(f"({escape_chars})", r"\\\1", text)
 
@@ -65,6 +101,13 @@ def get_current_and_previous_cycle_dates(today: date) -> dict[str, dict[str, dat
 
     Handles the transition from old billing cycle (4th-3rd) to new cycle
     (17th-16th) with special handling for the transition period (Oct 4 - Nov 16, 2025).
+
+    Args:
+        today: The reference date for calculating cycles.
+
+    Returns:
+        Dictionary with "current" and "previous" keys, each containing
+        "start" and "end" date objects for the respective billing cycle.
     """
     if config.CYCLE_CHANGE_DATE <= today <= config.CYCLE_TRANSITION_END_DATE:
         current_cycle_start = config.CYCLE_CHANGE_DATE

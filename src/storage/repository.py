@@ -1,3 +1,14 @@
+"""
+Database Repository Module.
+
+Provides the ExpenseRepository class, which serves as the single source of truth
+for all database operations related to expenses. Handles complex SQL queries with
+recursive CTEs for installment distribution across billing cycles.
+
+All database operations are performed asynchronously except for DataFrame operations
+which use synchronous connections for pandas compatibility.
+"""
+
 from datetime import date
 from decimal import Decimal
 from typing import Optional, List
@@ -15,11 +26,24 @@ log = logging.getLogger(__name__)
 class ExpenseRepository:
     """
     Handles all database operations related to expenses.
-    It is the single source of truth for database interaction.
+
+    This class serves as the single source of truth for database interactions,
+    providing methods to create, read, update, and delete expense records.
+    Implements complex installment distribution logic across billing cycles
+    using PostgreSQL recursive CTEs.
+
+    All async methods use autocommit connections for simplicity.
+    Synchronous methods are provided for pandas DataFrame operations.
     """
 
     def __init__(self):
-        """Initializes the repository by preparing the database connection string."""
+        """
+        Initializes the repository by preparing the database connection string.
+
+        The connection string is built from environment variables loaded in
+        the config module. Connection parameters include host, port, database
+        name, user, and password.
+        """
         self.dsn = (
             f"host={config.DB_HOST} port={config.DB_PORT} "
             f"dbname={config.POSTGRES_DB} user={config.POSTGRES_USER} "
@@ -42,11 +66,22 @@ class ExpenseRepository:
 
     async def add_expense(self, expense: Expense) -> int:
         """
-        Inserts a new expense record into the database.
+        Inserts a new expense record into the database with current timestamp.
+
+        The expense timestamp is automatically set to NOW() at insertion time.
+        All other fields (amount, description, method, tag, category, installments)
+        are taken from the provided Expense object.
+
         Args:
             expense: An Expense object containing the data to be inserted.
+                The id and expense_ts fields are ignored; they will be set by the database.
+
         Returns:
             The ID of the newly created expense record.
+
+        Raises:
+            RuntimeError: If the database fails to return an ID after insertion.
+            psycopg.Error: If database connection or query execution fails.
         """
         sql = """
             INSERT INTO public.expenses
@@ -74,9 +109,21 @@ class ExpenseRepository:
         """
         Calculates the sum of expenses within a given date range, considering installments.
 
-        Installments are distributed across billing cycles based on the original purchase date.
-        Purchases on/after Oct 4, 2025 follow the new cycle (17th-16th), while purchases
-        before follow the old cycle (4th-3rd).
+        Uses a recursive CTE to distribute installment payments across billing cycles.
+        The installment distribution logic handles the transition from old billing cycle
+        (4th-3rd) to new cycle (17th-16th) that occurred on Oct 4, 2025, with a
+        special 44-day transition period ending Nov 16, 2025.
+
+        Args:
+            start_dt: Start date of the period (inclusive).
+            end_dt: End date of the period (inclusive).
+
+        Returns:
+            Total amount spent during the period, quantized to 2 decimal places.
+            Returns Decimal("0.00") if no expenses found.
+
+        Raises:
+            psycopg.Error: If database connection or query execution fails.
         """
         sql = """
             WITH RECURSIVE installment_cycles AS (
@@ -127,7 +174,18 @@ class ExpenseRepository:
         return Decimal(total).quantize(Decimal("0.01"))
 
     async def delete_last_expense(self) -> Optional[int]:
-        """Deletes the most recent expense and returns its ID if successful."""
+        """
+        Deletes the most recent expense record from the database.
+
+        Identifies the expense with the highest ID (most recently inserted)
+        and removes it from the database.
+
+        Returns:
+            The ID of the deleted expense if successful, None if no expenses exist.
+
+        Raises:
+            psycopg.Error: If database connection or query execution fails.
+        """
         sql = """
             DELETE FROM public.expenses
             WHERE id = (SELECT id FROM public.expenses ORDER BY id DESC LIMIT 1)
@@ -139,7 +197,15 @@ class ExpenseRepository:
         return row[0] if row else None
 
     async def check_connection(self) -> bool:
-        """Checks if a connection to the database can be established."""
+        """
+        Checks if a connection to the database can be established.
+
+        Performs a simple SELECT 1 query to verify database connectivity.
+        Used for health checks and startup validation.
+
+        Returns:
+            True if connection successful, False if connection fails.
+        """
         try:
             async with await self._get_conn() as conn:
                 await conn.execute("SELECT 1")
@@ -148,7 +214,22 @@ class ExpenseRepository:
             return False
 
     async def get_last_n_expenses(self, limit: int = 5) -> List[Expense]:
-        """Fetches the last N expense records from the database."""
+        """
+        Fetches the last N expense records from the database.
+
+        Retrieves expenses ordered by ID in descending order (most recent first).
+        This returns the original expense records without installment distribution.
+
+        Args:
+            limit: Maximum number of expenses to retrieve (default: 5).
+
+        Returns:
+            List of Expense objects with id and expense_ts fields populated.
+            Returns empty list if no expenses exist.
+
+        Raises:
+            psycopg.Error: If database connection or query execution fails.
+        """
         sql = """
             SELECT id, expense_ts, amount, description, method, tag, category, installments
             FROM public.expenses
@@ -175,11 +256,23 @@ class ExpenseRepository:
 
     def get_all_expenses_as_dataframe(self) -> pd.DataFrame:
         """
-        Fetches all expenses, generating installment rows, and returns them as a pandas DataFrame.
+        Fetches all expenses with installment distribution as a pandas DataFrame.
 
-        Installments are distributed across billing cycles by adding the appropriate
-        number of days to align with the next cycle start dates. This handles the
-        transition from 4th-3rd cycles to 17th-16th cycles starting Oct 4, 2025.
+        Uses a recursive CTE to generate virtual rows for each installment payment.
+        Installment descriptions are appended with "(X/Y)" to indicate the installment
+        number. Timestamps are converted to the configured timezone.
+
+        The installment distribution handles the billing cycle transition from
+        old (4th-3rd) to new (17th-16th) schedules starting Oct 4, 2025.
+
+        Returns:
+            pandas DataFrame with columns: id, expense_ts, amount, description,
+            method, tag, category, installment_number, installments.
+            Returns empty DataFrame if database connection fails.
+
+        Note:
+            This method uses a synchronous connection for pandas compatibility.
+            Database errors are logged and an empty DataFrame is returned.
         """
         sql = """
             WITH RECURSIVE installment_cycles AS (
@@ -269,12 +362,27 @@ class ExpenseRepository:
         self, start_date: date, end_date: date
     ) -> pd.DataFrame:
         """
-        Fetches expenses within a date range, generating installment rows,
-        and returns them as a pandas DataFrame.
+        Fetches expenses within a date range with installment distribution as a DataFrame.
 
-        Installments are distributed across billing cycles by adding the appropriate
-        number of days to align with the next cycle start dates. This handles the
-        transition from 4th-3rd cycles to 17th-16th cycles starting Oct 4, 2025.
+        Uses a recursive CTE to generate virtual rows for each installment payment,
+        filtering to only include expenses whose distributed installment dates fall
+        within the specified range. Installment descriptions are appended with "(X/Y)".
+
+        The installment distribution handles the billing cycle transition from
+        old (4th-3rd) to new (17th-16th) schedules starting Oct 4, 2025.
+
+        Args:
+            start_date: Start date of the range (inclusive).
+            end_date: End date of the range (inclusive).
+
+        Returns:
+            pandas DataFrame with columns: id, expense_ts, amount, description,
+            method, tag, category, installment_number, installments.
+            Returns empty DataFrame if database connection fails or no data found.
+
+        Note:
+            This method uses a synchronous connection for pandas compatibility.
+            Database errors are logged and an empty DataFrame is returned.
         """
         sql = """
             WITH RECURSIVE installment_cycles AS (

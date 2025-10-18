@@ -1,3 +1,13 @@
+"""
+Telegram Bot Command Handlers Module.
+
+This module contains all Telegram bot command handlers for the Financial Tracker.
+Each handler processes specific user commands or messages and interacts with
+the database repository to manage expense records.
+
+All handlers require user authorization via ensure_auth() before processing.
+"""
+
 import logging
 import traceback
 from datetime import date
@@ -49,6 +59,19 @@ async def ensure_auth(update: Update) -> bool:
 
 
 async def cmd_help(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Handles the /help command - displays usage instructions.
+
+    Shows the user how to format expense messages and lists all available commands.
+    Includes allowed values for payment methods, tags, and categories.
+
+    Args:
+        update: The Telegram update object containing the command message.
+        context: The Telegram context object.
+
+    Returns:
+        None
+    """
     if not await ensure_auth(update):
         return
 
@@ -74,6 +97,18 @@ async def cmd_help(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def cmd_health(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Handles the /health command - checks database connectivity.
+
+    Tests the connection to the PostgreSQL database and reports status to the user.
+
+    Args:
+        update: The Telegram update object containing the command message.
+        context: The Telegram context object.
+
+    Returns:
+        None
+    """
     if not await ensure_auth(update):
         return
 
@@ -84,6 +119,18 @@ async def cmd_health(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def cmd_undo(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Handles the /undo command - deletes the most recent expense.
+
+    Removes the last expense entry from the database and confirms deletion to the user.
+
+    Args:
+        update: The Telegram update object containing the command message.
+        context: The Telegram context object.
+
+    Returns:
+        None
+    """
     if not await ensure_auth(update):
         return
 
@@ -95,6 +142,19 @@ async def cmd_undo(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def cmd_last(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Handles the /last command - shows the last 5 expense entries.
+
+    Retrieves and displays the 5 most recent expenses in a formatted table with
+    date, amount, and description columns.
+
+    Args:
+        update: The Telegram update object containing the command message.
+        context: The Telegram context object.
+
+    Returns:
+        None
+    """
     if not await ensure_auth(update):
         return
 
@@ -135,6 +195,25 @@ async def cmd_last(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def on_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Handles text messages - parses and stores expense entries.
+
+    Parses user-provided text messages in the format:
+    "Amount - Description - Method - Tag - Category [- Installments]"
+
+    Validates the input, stores the expense in the database, and sends a
+    confirmation message with the registered expense details.
+
+    Args:
+        update: The Telegram update object containing the text message.
+        context: The Telegram context object.
+
+    Returns:
+        None
+
+    Raises:
+        ValueError: If the message format is invalid or contains disallowed values.
+    """
     if not await ensure_auth(update) or not update.message or not update.message.text:
         return
 
@@ -176,6 +255,22 @@ async def on_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def cmd_balance(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Handles the /balance command - displays current billing cycle spending.
+
+    Shows the user the total amount spent in the current billing cycle,
+    including the invoice month name, cycle period dates, and spending total
+    from cycle start until today.
+
+    Handles the billing cycle transition from old (4th-3rd) to new (17th-16th) logic.
+
+    Args:
+        update: The Telegram update object containing the command message.
+        context: The Telegram context object.
+
+    Returns:
+        None
+    """
     if not await ensure_auth(update):
         return
 
@@ -217,6 +312,19 @@ async def cmd_balance(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def on_error(update: object, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Global error handler for the bot.
+
+    Logs unhandled exceptions and sends a user-friendly error message
+    to the user if possible.
+
+    Args:
+        update: The Telegram update object (may be any object type).
+        context: The Telegram context object containing the error.
+
+    Returns:
+        None
+    """
     exc_text = "".join(
         traceback.format_exception(None, context.error, context.error.__traceback__)
     )
