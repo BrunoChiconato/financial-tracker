@@ -1,0 +1,36 @@
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Build outputs
+dist/
+build/
+*.min.js
+
+# Package files
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Environment files
+.env
+.env.*
+
+# Logs
+logs/
+*.log
+
+# Database
+*.sql
+*.db
+
+# Python
+*.pyc
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Other
+.git/
+.cache/
+coverage/

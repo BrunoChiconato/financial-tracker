@@ -56,36 +56,40 @@ def _load_app_config() -> dict:
         return json.load(f)
 
 
-_app_config = _load_app_config()
+_app_config: dict = _load_app_config()
 
-POSTGRES_PASSWORD = os.getenv("POSTGRES_PASSWORD", "change_me")
-POSTGRES_USER = os.getenv("POSTGRES_USER", "finance")
-POSTGRES_DB = os.getenv("POSTGRES_DB", "finance")
-DB_HOST = os.getenv("DB_HOST", "db")
-DB_PORT = int(os.getenv("DB_PORT", "5432"))
+POSTGRES_PASSWORD: str = os.getenv("POSTGRES_PASSWORD", "change_me")
+POSTGRES_USER: str = os.getenv("POSTGRES_USER", "finance")
+POSTGRES_DB: str = os.getenv("POSTGRES_DB", "finance")
 
-TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
+DB_HOST: str = os.getenv("DB_HOST", "db")
+if not DB_HOST or not DB_HOST.strip():
+    raise ValueError("DB_HOST cannot be empty")
+
+DB_PORT: int = int(os.getenv("DB_PORT", "5432"))
+if not (1 <= DB_PORT <= 65535):
+    raise ValueError(f"DB_PORT must be between 1 and 65535, got {DB_PORT}")
+
+TELEGRAM_BOT_TOKEN: str | None = os.environ.get("TELEGRAM_BOT_TOKEN")
 if not TELEGRAM_BOT_TOKEN:
     raise ValueError("Missing required environment variable: TELEGRAM_BOT_TOKEN")
 
-ALLOWED_USER_ID = int(os.getenv("ALLOWED_USER_ID", "0"))
-TZ = os.getenv("TZ", "America/Sao_Paulo")
+ALLOWED_USER_ID: int = int(os.getenv("ALLOWED_USER_ID", "0"))
+TZ: str = os.getenv("TZ", "America/Sao_Paulo")
+CYCLE_RESET_DAY_OLD: int = 4
+CYCLE_RESET_DAY_NEW: int = 17
+CYCLE_CHANGE_DATE: date = date(2025, 10, 4)
+CYCLE_TRANSITION_END_DATE: date = date(2025, 11, 16)
 
-CYCLE_RESET_DAY = int(os.getenv("CYCLE_RESET_DAY", "10"))
-CYCLE_RESET_DAY_OLD = 4
-CYCLE_RESET_DAY_NEW = 17
-CYCLE_CHANGE_DATE = date(2025, 10, 4)
-CYCLE_TRANSITION_END_DATE = date(2025, 11, 16)
+ALLOWED_METHODS: dict[str, str] = _app_config.get("methods", {})
+ALLOWED_TAGS: dict[str, str] = _app_config.get("tags", {})
+CATEGORIES_DISPLAY: list[str] = _app_config.get("categories_display", [])
 
-ALLOWED_METHODS = _app_config.get("methods", {})
-ALLOWED_TAGS = _app_config.get("tags", {})
-CATEGORIES_DISPLAY = _app_config.get("categories_display", [])
+ALLOWED_CATEGORIES: dict[str, str] = {_strip_accents_lower(cat): cat for cat in CATEGORIES_DISPLAY}
 
-ALLOWED_CATEGORIES = {_strip_accents_lower(cat): cat for cat in CATEGORIES_DISPLAY}
+SEP_RE: re.Pattern[str] = re.compile(r"\s*(?:-+|;|\||,(?!\d))\s*")
 
-SEP_RE = re.compile(r"\s*(?:-+|;|\||,(?!\d))\s*")
-
-LOWER_WORDS = {
+LOWER_WORDS: set[str] = {
     "de",
     "da",
     "do",

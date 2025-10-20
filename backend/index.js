@@ -224,7 +224,11 @@ app.get('/api/summary', async (req, res) => {
 
     const previousData = previousResult.rows[0];
     const previousTotalSpent = parseFloat(previousData.total_spent) || 0;
-    const previousAvgDaily = previousTotalSpent / daysDuration;
+
+    const previousDaysDuration = Math.floor(
+      (previousPeriod.end.getTime() - previousPeriod.start.getTime()) / (1000 * 60 * 60 * 24)
+    ) + 1;
+    const previousAvgDaily = previousTotalSpent / previousDaysDuration;
 
     const momTotal = calculateMoM(totalSpent, previousTotalSpent);
     const momAvgDaily = calculateMoM(avgDaily, previousAvgDaily);
