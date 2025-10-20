@@ -92,7 +92,7 @@ These rules override default behavior and must be followed exactly:
 **Context:** The backend API uses consistent parameter handling and query structure.
 **Requirement:** New endpoints in `backend/server.js` must:
 1. Accept filters via query parameters: `startDate`, `endDate`, `categories[]`, `tags[]`, `methods[]`
-2. Use `parseFilterParams()` utility for parameter extraction
+2. Use `parseDateFilters()` utility for parameter extraction
 3. Apply installment expansion via `getInstallmentDistributionCTE()`
 4. Return JSON with consistent structure (e.g., `{ data: [...] }`)
 5. Include error handling with descriptive messages
@@ -200,16 +200,23 @@ All services share a single PostgreSQL database. The React and Streamlit dashboa
 
 ### Docker Operations
 ```bash
-make up              # Start all services (bot, db, dashboard, pgadmin) with build
-make down            # Stop all services and remove volumes
-make stop            # Stop services WITHOUT removing volumes (preserves data)
+make up              # Start all services (bot, db, backend, frontend, pgadmin) with build
+make stop            # Stop all services (preserves data and volumes)
 make rebuild         # Rebuild and restart services (preserves data)
 make restart         # Restart all services without rebuilding
 make logs-bot        # Tail bot service logs
-make logs-dashboard  # Tail dashboard service logs
+make logs-backend    # Tail backend API service logs
+make logs-frontend   # Tail frontend service logs
 make logs-db         # Tail database logs
-make prune           # Remove unused Docker images/containers/networks
+make backup          # Create database backup
+make clean-containers # Remove stopped containers (preserves data volumes)
 ```
+
+**CRITICAL DATA SAFETY:**
+- The Makefile contains NO commands that delete volumes or data
+- All operations preserve the database
+- NEVER manually run `docker compose down -v` or `docker volume rm` commands
+- Always use `make backup` before any significant changes
 
 ### Code Quality & Testing
 ```bash
@@ -223,11 +230,14 @@ pytest tests/        # Run test suite (requires: uv pip install pytest)
 make env-check       # Validate required environment variables
 ```
 
-### Direct Docker Compose
+### Direct Docker Compose (Safe Commands Only)
 ```bash
-docker compose up -d --build
-docker compose down -v
+docker compose up -d --build        # Start services
+docker compose stop                 # Stop services (preserves data)
+docker compose restart              # Restart services
 ```
+
+**WARNING:** Never use `docker compose down -v` as it deletes all data volumes.
 
 ## Architecture & Data Flow
 
@@ -1088,21 +1098,22 @@ The project has been successfully migrated to a modern full-stack architecture w
   - `DarkModeToggle.jsx`: Floating theme toggle button (sun/moon icons)
 
 ### Development Workflow
-- **Backend Dev**: `cd backend && npm run dev` (runs on port 3001)
-- **Frontend Dev**: `cd frontend && npm run dev` (runs on port 5173)
-- **Concurrent Mode**: `npm run dev` (from root, runs both services)
+- **All Services**: `make up` (starts all containerized services)
+- **View Logs**: `make logs-backend` or `make logs-frontend`
+- **Rebuild**: `make rebuild` (rebuild and restart all services)
 
-### Compatibility Notes
-- The Telegram bot service continues to function independently
-- Both Streamlit and React dashboards can coexist during migration
-- All services share the same PostgreSQL database
-- Billing cycle logic and installment calculations remain consistent across all interfaces
+### Deployment Architecture
+- **Fully Containerized**: All services run in Docker containers managed by Docker Compose
+- **Always Available**: Backend API and React frontend are containerized and start automatically with `make up`
+- **No Manual npm run dev**: Unlike the legacy setup, the modern stack requires no separate development server commands
+- **Single Source of Truth**: All services share the same PostgreSQL database
+- **Consistent Logic**: Billing cycle and installment calculations remain identical across all interfaces
 
 ### Access URLs
-- **React Dashboard**: http://localhost:5173 (Modern UI with enhanced filtering and visualizations)
-- **Streamlit Dashboard**: http://localhost:8501 (Legacy dashboard, still functional)
-- **Backend API**: http://localhost:3001 (RESTful API endpoints)
+- **React Dashboard**: http://localhost:5173 (Modern UI served by nginx, containerized)
+- **Backend API**: http://localhost:3001 (Express API, containerized)
 - **Database**: localhost:5432 (PostgreSQL, exposed to host)
+- **pgAdmin**: http://localhost:5050 (Database administration)
 
 ### Features Implemented
 The React dashboard includes all Streamlit features plus enhancements:

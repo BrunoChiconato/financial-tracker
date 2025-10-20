@@ -160,12 +160,10 @@ graph TD
     ExpressAPI -.->|Uses| QueryModules[📝 Query Modules<br/>installments.js<br/>billingCycle.js]
 
     Docker[🐳 Docker Compose] -.->|Orchestrates| BotService
-    Docker -.->|Orchestrates| StreamlitApp
+    Docker -.->|Orchestrates| ExpressAPI
+    Docker -.->|Orchestrates| ReactApp
     Docker -.->|Orchestrates| PostgresDB
     Docker -.->|Orchestrates| PGAdmin
-
-    ReactApp -.->|Dev Mode<br/>npm run dev| ViteServer[⚡ Vite Dev Server]
-    ExpressAPI -.->|Dev Mode<br/>nodemon| NodemonServer[🔄 Nodemon Hot Reload]
 
     PostgresDB -->|Persists to| Volume1[💿 pgdata volume]
     PGAdmin -->|Persists to| Volume2[💿 pgadmin_data volume]
@@ -305,9 +303,9 @@ PGADMIN_DEFAULT_PASSWORD=your_pgadmin_password
 - Never commit the `.env` file to version control (it's already in `.gitignore`)
 - The `ALLOWED_USER_ID` must be set to your Telegram user ID (never use 0 or negative values)
 
-### Step 3: Start Docker Services
+### Step 3: Start All Services
 
-Start the PostgreSQL database, Telegram bot, and Streamlit dashboard using Docker Compose:
+Start all services (database, bot, backend API, and frontend dashboard) using Docker Compose:
 
 **Using Make (recommended):**
 ```bash
@@ -319,10 +317,11 @@ make up
 docker compose up -d --build
 ```
 
-This will start the following services:
+This will build and start the following containerized services:
 - `db`: PostgreSQL 16 on port 5432
 - `bot`: Telegram bot service
-- `dashboard`: Streamlit dashboard on port 8501
+- `backend`: Express API on port 3001
+- `frontend`: React dashboard (nginx) on port 5173
 - `pgadmin`: Database admin UI on port 5050
 
 **Verify services are running:**
@@ -330,48 +329,16 @@ This will start the following services:
 docker compose ps
 ```
 
-### Step 4: Install Node.js Dependencies
+All services should show status "Up" and the database should be "healthy".
 
-Install dependencies for both the backend API and React frontend:
-
-```bash
-npm run install:all
-```
-
-Alternatively, install dependencies manually:
-```bash
-cd backend && npm install
-cd ../frontend && npm install
-cd ..
-```
-
-### Step 5: Start the React Dashboard
-
-Start both the Express backend and React frontend in development mode:
-
-**Concurrent mode (recommended):**
-```bash
-npm run dev
-```
-
-**Separate terminals (for debugging):**
-```bash
-# Terminal 1: Backend API
-cd backend && npm run dev
-
-# Terminal 2: React Frontend
-cd frontend && npm run dev
-```
-
-### Step 6: Access the Application
+### Step 4: Access the Application
 
 Once all services are running, access the dashboards:
 
 | Service | URL | Description |
 |---------|-----|-------------|
-| **React Dashboard** (Modern) | http://localhost:5173 | Recommended UI with enhanced features |
-| **Backend API** | http://localhost:3001 | RESTful API endpoints |
-| **Streamlit Dashboard** (Legacy) | http://localhost:8501 | Classic Python-based UI |
+| **React Dashboard** | http://localhost:5173 | Modern UI (containerized, always available) |
+| **Backend API** | http://localhost:3001 | RESTful API endpoints (containerized) |
 | **pgAdmin** | http://localhost:5050 | Database administration tool |
 | **Telegram Bot** | (via Telegram app) | Send messages to your bot |
 
@@ -614,16 +581,12 @@ In addition to unit tests, verify services are functioning correctly:
 3. Verify data loads correctly
 4. Test category/tag filters
 5. Check MoM comparison values
+6. Toggle dark mode
 
 **Backend API:**
-1. Test health endpoint: `curl http://localhost:3001/health`
+1. Test health endpoint: `curl http://localhost:3001/api/health`
 2. Test metadata endpoint: `curl http://localhost:3001/api/filters/metadata`
 3. Verify JSON responses
-
-**Streamlit Dashboard:**
-1. Access http://localhost:8501
-2. Apply date range filters
-3. Verify charts render correctly
 
 **Database:**
 1. Access pgAdmin at http://localhost:5050
@@ -753,15 +716,18 @@ The project includes a Makefile for simplified Docker management:
 
 ```bash
 make up              # Start all services with build
-make down            # Stop services and remove volumes
-make stop            # Stop services WITHOUT removing volumes (preserves data)
+make stop            # Stop all services (preserves data)
 make rebuild         # Rebuild and restart services (preserves data)
 make restart         # Restart all services without rebuilding
 make logs-bot        # Tail bot service logs
-make logs-dashboard  # Tail dashboard service logs
+make logs-backend    # Tail backend API service logs
+make logs-frontend   # Tail frontend service logs
 make logs-db         # Tail database logs
-make prune           # Remove unused Docker images/containers/networks
+make backup          # Create database backup
+make clean-containers # Remove stopped containers (preserves data volumes)
 ```
+
+**Data Safety:** All Makefile commands preserve your database volumes and data. No destructive operations are available.
 
 **Environment validation:**
 ```bash
@@ -799,7 +765,7 @@ To add or modify categories, tags, or payment methods:
 
 1. Edit `config/categories.json`
 2. Update database constraints in `db/init/schema.sql`
-3. Rebuild services: `make down && make up`
+3. Rebuild services: `make clean-containers && make up`
 
 ### Modifying Billing Cycle Logic
 
@@ -835,10 +801,14 @@ If you need to change the billing cycle transition dates:
 
 For schema changes:
 
-1. Update `db/init/schema.sql` with new structure
-2. Run `make down` to remove existing database
-3. Run `make up` to recreate with new schema
-4. **Note**: This will delete all data; backup first if needed
+1. **ALWAYS backup first**: `make backup`
+2. Update `db/init/schema.sql` with new structure
+3. Stop services: `make stop`
+4. Remove containers: `make clean-containers`
+5. Recreate with new schema: `make up`
+6. Restore data: `make restore BACKUP=backups/backup_YYYYMMDD_HHMMSS.sql.gz`
+
+**Note**: The Makefile has no destructive commands. All data is preserved in volumes.
 
 For production-style migrations without data loss, use a migration tool like Alembic or Flyway (not included in this project).
 
@@ -852,8 +822,9 @@ For production-style migrations without data loss, use a migration tool like Ale
 
 **Dashboard not loading:**
 - Check if services are running: `docker compose ps`
-- Verify ports are not in use: `lsof -i :5173` (React) or `lsof -i :8501` (Streamlit)
-- Check backend logs: `cd backend && npm run dev` (look for errors)
+- Verify ports are not in use: `lsof -i :5173` (frontend) or `lsof -i :3001` (backend)
+- Check backend logs: `make logs-backend`
+- Check frontend logs: `make logs-frontend`
 - Verify database connection in `.env`
 
 **Database connection errors:**
