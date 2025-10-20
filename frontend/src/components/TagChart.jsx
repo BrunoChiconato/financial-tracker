@@ -11,6 +11,7 @@
  */
 
 import { SectionTitle } from './SectionTitle';
+import { formatCurrency } from '../utils/formatters';
 
 const TAG_COLORS = [
   'bg-slate-300',
@@ -62,7 +63,7 @@ export function TagChart({ data }) {
                   <span className="text-slate-700 dark:text-slate-300">{tag.name}</span>
                 </div>
                 <div className="text-slate-600 dark:text-slate-400">
-                  R$ {tag.value.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} •{" "}
+                  {formatCurrency(tag.value)} •{" "}
                   {tag.percentage.toFixed(1)}%
                 </div>
               </div>

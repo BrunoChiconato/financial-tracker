@@ -10,6 +10,8 @@
  * @param {number} props.max - Maximum value for calculating bar width percentage
  * @returns {JSX.Element} Rendered bar row
  */
+import { formatCurrency } from '../utils/formatters';
+
 export function BarRow({ label, value, max }) {
   const pct = max > 0 ? (value / max) * 100 : 0;
 
@@ -18,7 +20,7 @@ export function BarRow({ label, value, max }) {
       <div className="flex items-center justify-between">
         <span className="text-sm text-slate-700 dark:text-slate-300">{label}</span>
         <span className="text-xs text-slate-600 dark:text-slate-400">
-          R$ {value.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          {formatCurrency(value)}
         </span>
       </div>
       <div className="h-6 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md overflow-hidden">

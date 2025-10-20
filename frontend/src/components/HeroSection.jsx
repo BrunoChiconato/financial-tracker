@@ -1,5 +1,6 @@
 import { Target, Calendar, Wallet, TrendingUp, List, ArrowUpRight, ArrowDownRight } from "lucide-react";
 import { KpiCard } from "./KpiCard";
+import { formatCurrency } from "../utils/formatters";
 
 /**
  * HeroSection Component
@@ -38,11 +39,11 @@ export function HeroSection({ summary }) {
             </div>
             <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
               <span className="font-medium">
-                R$ {spent.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                {formatCurrency(spent)}
               </span>{" "}
-              de R$ {budget.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} • faltam{" "}
+              de {formatCurrency(budget)} • faltam{" "}
               <span className="font-medium">
-                R$ {remaining.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                {formatCurrency(remaining)}
               </span>
             </p>
           </div>
@@ -54,7 +55,7 @@ export function HeroSection({ summary }) {
             <div className="mt-1">
               Projeção mês:{" "}
               <span className="font-medium">
-                R$ {projected.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                {formatCurrency(projected)}
               </span>
             </div>
           </div>
@@ -90,7 +91,7 @@ export function HeroSection({ summary }) {
             </span>
             <span>
               Esperado até hoje:{" "}
-              R$ {expectedByToday.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              {formatCurrency(expectedByToday)}
             </span>
           </div>
         </div>
@@ -100,12 +101,12 @@ export function HeroSection({ summary }) {
         <KpiCard
           icon={Wallet}
           label="Total gasto"
-          value={`R$ ${spent.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+          value={formatCurrency(spent)}
         />
         <KpiCard
           icon={TrendingUp}
           label="Projeção fim do mês"
-          value={`R$ ${projected.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+          value={formatCurrency(projected)}
           subtle
         />
         <KpiCard icon={List} label="Lançamentos" value={`${totalTx}`} />

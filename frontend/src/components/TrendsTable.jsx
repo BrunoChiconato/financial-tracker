@@ -14,6 +14,7 @@
 
 import { ArrowUpRight, ArrowDownRight } from 'lucide-react';
 import { SectionTitle } from './SectionTitle';
+import { formatCurrency } from '../utils/formatters';
 
 export function TrendsTable({ data, groupBy, setGroupBy }) {
   if (!data || data.length === 0) {
@@ -92,7 +93,7 @@ export function TrendsTable({ data, groupBy, setGroupBy }) {
                     {row.category || row.tag}
                   </td>
                   <td className="py-2 px-4 text-right text-slate-900 dark:text-slate-100">
-                    R$ {row.currentTotal.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    {formatCurrency(row.currentTotal)}
                   </td>
                   <td className={`py-2 px-4 text-right font-medium ${variationColorClass}`}>
                     <span className="inline-flex items-center gap-1">
@@ -101,7 +102,7 @@ export function TrendsTable({ data, groupBy, setGroupBy }) {
                       ) : isDecrease ? (
                         <ArrowDownRight className="h-4 w-4" />
                       ) : null}
-                      R$ {absVariation.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      {formatCurrency(absVariation)}
                     </span>
                   </td>
                   <td className={`py-2 px-4 text-right font-medium ${variationColorClass}`}>

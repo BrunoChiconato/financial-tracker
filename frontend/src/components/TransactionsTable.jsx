@@ -13,6 +13,7 @@
 import { useState } from 'react';
 import { SectionTitle } from './SectionTitle';
 import { Chip } from './Chip';
+import { formatCurrency } from '../utils/formatters';
 
 export function TransactionsTable({ expenses }) {
   const [sortConfig, setSortConfig] = useState({
@@ -119,10 +120,7 @@ export function TransactionsTable({ expenses }) {
                   </td>
                   <td className="py-2 px-3 text-slate-900 dark:text-slate-100">{expense.description}</td>
                   <td className="py-2 px-3 text-right font-medium text-slate-900 dark:text-slate-100">
-                    {parseFloat(expense.amount).toLocaleString("pt-BR", {
-                      minimumFractionDigits: 2,
-                      maximumFractionDigits: 2
-                    })}
+                    {formatCurrency(expense.amount)}
                   </td>
                   <td className="py-2 px-3">
                     <Chip>{expense.category}</Chip>
