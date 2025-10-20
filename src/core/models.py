@@ -26,3 +26,4 @@ class Expense:
     installments: Optional[int] = None
     id: Optional[int] = field(init=False, default=None)
     expense_ts: Optional[datetime] = field(init=False, default=None)
+    parsed: bool = field(init=False, default=True)
