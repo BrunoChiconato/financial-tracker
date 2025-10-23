@@ -24,6 +24,7 @@ import {
   parseDateFilters,
 } from './utils/billingCycle.js';
 import { formatCurrency, calculateMoM } from './utils/formatters.js';
+import { getCurrentMonthlyCap, calculateMonthlyCap } from './utils/capCalculation.js';
 
 dotenv.config();
 
@@ -52,6 +53,8 @@ app.get('/', (req, res) => {
       'GET /api/charts/category',
       'GET /api/charts/tag',
       'GET /api/trends/mom',
+      'GET /api/cap',
+      'GET /api/cap/:year/:month',
     ],
   });
 });
@@ -383,6 +386,72 @@ app.get('/api/trends/mom', async (req, res) => {
   } catch (error) {
     console.error('Error fetching MoM trends:', error);
     res.status(500).json({ error: 'Failed to fetch MoM trends' });
+  }
+});
+
+/**
+ * GET /api/cap
+ *
+ * Returns the monthly budget cap for the current invoice month.
+ *
+ * The cap is calculated based on business days, hourly rate, and configurable
+ * deductions. All sensitive parameters are stored in environment variables.
+ *
+ * Response:
+ * - cap: The calculated monthly budget cap in BRL (or null if not applicable)
+ * - applicable: Boolean indicating if cap should be displayed
+ */
+app.get('/api/cap', async (req, res) => {
+  try {
+    const cap = getCurrentMonthlyCap();
+
+    res.json({
+      cap,
+      applicable: cap !== null,
+    });
+  } catch (error) {
+    console.error('Error calculating monthly cap:', error);
+    res.status(500).json({ error: 'Failed to calculate monthly cap' });
+  }
+});
+
+/**
+ * GET /api/cap/:year/:month
+ *
+ * Returns the monthly budget cap for a specific invoice month.
+ *
+ * Path parameters:
+ * - year: Invoice year (e.g., 2025)
+ * - month: Invoice month (1-12)
+ *
+ * Response:
+ * - cap: The calculated monthly budget cap in BRL (or null if not applicable)
+ * - applicable: Boolean indicating if cap should be displayed
+ * - invoiceYear: The invoice year
+ * - invoiceMonth: The invoice month
+ */
+app.get('/api/cap/:year/:month', async (req, res) => {
+  try {
+    const year = parseInt(req.params.year);
+    const month = parseInt(req.params.month);
+
+    if (isNaN(year) || isNaN(month) || month < 1 || month > 12) {
+      return res.status(400).json({
+        error: 'Invalid year or month. Month must be between 1 and 12.',
+      });
+    }
+
+    const cap = calculateMonthlyCap(year, month);
+
+    res.json({
+      cap,
+      applicable: cap !== null,
+      invoiceYear: year,
+      invoiceMonth: month,
+    });
+  } catch (error) {
+    console.error('Error calculating monthly cap:', error);
+    res.status(500).json({ error: 'Failed to calculate monthly cap' });
   }
 });
 

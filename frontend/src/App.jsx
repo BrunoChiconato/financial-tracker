@@ -119,7 +119,12 @@ function App() {
       <div className="mx-auto max-w-7xl px-6 py-6 space-y-6">
         {displayData.summary ? (
           <div className={`transition-opacity duration-150 ${loading ? 'opacity-50' : 'opacity-100'}`}>
-            <HeroSection summary={displayData.summary} />
+            <HeroSection
+              summary={displayData.summary}
+              cap={displayData.cap}
+              invoiceYear={filters.invoiceYear}
+              invoiceMonth={filters.invoiceMonth}
+            />
 
             <div className="grid grid-cols-12 gap-4 mt-6">
               <div className="col-span-12 lg:col-span-7">

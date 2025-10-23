@@ -13,8 +13,10 @@ import {
   getCategoryBreakdown,
   getTagBreakdown,
   getMoMTrends,
+  getMonthlyCapForPeriod,
 } from '../services/apiService';
 import { formatDateISO } from '../utils/dates';
+import { getCurrentInvoiceMonth } from '../utils/billingCycle';
 
 export const useFinanceData = () => {
   const [loading, setLoading] = useState(true);
@@ -46,6 +48,7 @@ export const useFinanceData = () => {
     categoryBreakdown: [],
     tagBreakdown: [],
     momTrends: [],
+    cap: null,
   });
 
   /**
@@ -58,16 +61,15 @@ export const useFinanceData = () => {
         const meta = await getFilterMetadata();
         setMetadata(meta);
 
-        const currentMonth = meta.invoiceMonths[meta.invoiceMonths.length - 1];
-        if (currentMonth) {
-          setFilters((prev) => ({
-            ...prev,
-            invoiceYear: currentMonth.year,
-            invoiceMonth: currentMonth.month,
-            categories: meta.categories || [],
-            tags: meta.tags || [],
-          }));
-        }
+        const { invoiceYear, invoiceMonth } = getCurrentInvoiceMonth();
+
+        setFilters((prev) => ({
+          ...prev,
+          invoiceYear,
+          invoiceMonth,
+          categories: meta.categories || [],
+          tags: meta.tags || [],
+        }));
 
         setError(null);
       } catch (err) {
@@ -101,13 +103,14 @@ export const useFinanceData = () => {
         groupBy: filters.groupBy,
       };
 
-      const [expensesData, summaryData, categoryData, tagData, momData] =
+      const [expensesData, summaryData, categoryData, tagData, momData, capData] =
         await Promise.all([
           getExpenses(filterParams),
           getSummary(filterParams),
           getCategoryBreakdown(filterParams),
           getTagBreakdown(filterParams),
           getMoMTrends(filterParams),
+          getMonthlyCapForPeriod(filters.invoiceYear, filters.invoiceMonth),
         ]);
 
       setData({
@@ -116,6 +119,7 @@ export const useFinanceData = () => {
         categoryBreakdown: categoryData.data || [],
         tagBreakdown: tagData.data || [],
         momTrends: momData.data || [],
+        cap: capData.applicable ? capData.cap : null,
       });
 
       setError(null);

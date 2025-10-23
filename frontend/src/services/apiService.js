@@ -110,6 +110,31 @@ export const getMoMTrends = async (filters) => {
 };
 
 /**
+ * Fetches the monthly budget cap for the current invoice month.
+ *
+ * The cap is calculated dynamically based on business days, hourly rates,
+ * and deductions configured in environment variables on the backend.
+ *
+ * @returns {Promise<Object>} Cap data { cap: number|null, applicable: boolean }
+ */
+export const getMonthlyCap = async () => {
+  const response = await api.get('/api/cap');
+  return response.data;
+};
+
+/**
+ * Fetches the monthly budget cap for a specific invoice month.
+ *
+ * @param {number} year - Invoice year (e.g., 2025)
+ * @param {number} month - Invoice month (1-12)
+ * @returns {Promise<Object>} Cap data
+ */
+export const getMonthlyCapForPeriod = async (year, month) => {
+  const response = await api.get(`/api/cap/${year}/${month}`);
+  return response.data;
+};
+
+/**
  * Health check endpoint.
  *
  * @returns {Promise<Object>} Health status
