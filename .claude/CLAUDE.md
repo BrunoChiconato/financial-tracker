@@ -106,10 +106,13 @@ These rules override default behavior and must be followed exactly:
 3. NEVER hardcode hourly rates, tax percentages, or accounting fees
 4. Cap calculation accounts for:
    - Business days worked (including special month overrides like `CAP_OCTOBER_BUSINESS_DAYS`)
+   - Business-day holidays (configured in `config/holidays.json` by CALENDAR month, starting November 2025)
    - Accounting fees starting from a specific month
    - DAS, Pro Labore, and INSS percentages
    - First discount (percentage) and second discount (fixed amount)
-5. The `/api/cap/:year/:month` endpoint provides cap data for dashboard display
+5. The `/api/cap/:year/:month` endpoint provides detailed cap breakdown for dashboard display
+6. Holidays are subtracted from business days: `businessDaysWorked = totalBusinessDays - holidays`
+7. **CRITICAL:** Holidays in `config/holidays.json` use CALENDAR month (where work happens), NOT invoice month
 
 **Rationale:** Budget caps are business-specific calculations that must remain configurable and auditable.
 
@@ -347,28 +350,43 @@ Amount - Description - Method - Tag - Category [- Installments]
 ```
 Example: `35,50 - Uber - Cartão de Crédito - Gastos Pessoais - Transporte`
 
-### Configuration File
-`config/categories.json` defines allowed values for:
+### Configuration Files
+
+**`config/categories.json`** - Defines allowed values for:
 - Payment methods (Pix, Cartão de Crédito, Cartão de Débito, Boleto)
 - Tags (Gastos Pessoais, Gastos do Casal, Gastos de Casa)
 - Categories (Alimentação, Transporte, etc.)
 
 Modify this file to add/change allowed values. Database constraints must be updated separately in `schema.sql`.
 
+**`config/holidays.json`** - Stores business-day holidays per calendar month:
+- Format: `{ "2025": { "11": 2, "12": 3 }, "2026": { "1": 1 } }`
+- Keys are calendar year and calendar month (1-12) where work happens
+- Values are the number of non-working days (holidays) in that calendar month
+- **Important:** Use calendar month (typically invoice month - 1), NOT invoice month
+- Example: For December 2025 invoice month (Nov 17 - Dec 16), work happens in November, so use `"11"`
+- Includes Brazilian national/bank holidays and personal non-working days
+- Starting from November 2025, holidays are subtracted from business days in cap calculation
+- Missing entries default to 0 holidays
+
 ### Monthly Budget Cap Calculation
 The system calculates a monthly spending cap based on business income and deductions:
 
 **Formula:**
-1. Gross Income = Hourly Rate × Daily Hours × Business Days Worked
-2. Total Deductions = Accounting Fee + DAS + Pro Labore + INSS
-3. Net After Deductions = Gross Income - Total Deductions
-4. Net Cap = Net After Deductions - First Discount - Second Discount
+1. Total Business Days = Weekdays in calendar month (Mon-Fri)
+2. Business Days Worked = Total Business Days - Holidays (from `config/holidays.json`)
+3. Gross Income = Hourly Rate × Daily Hours × Business Days Worked
+4. Total Deductions = Accounting Fee + DAS + Pro Labore + INSS
+5. Net After Deductions = Gross Income - Total Deductions
+6. Net Cap = Net After Deductions - First Discount - Second Discount
 
 **Special Considerations:**
+- Holidays are configured in `config/holidays.json` starting from November 2025
 - Accounting fee only applies from `CAP_ACCOUNTING_START_MONTH/YEAR` onwards
 - October 2025 has special business day override (`CAP_OCTOBER_BUSINESS_DAYS`) due to transition cycle
 - All percentages stored as decimals (e.g., 0.06 for 6%)
 - Cap calculation respects billing cycle dates (not calendar month)
+- Frontend displays holiday breakdown: "Dias úteis trabalhados: 18 (20 disponíveis - 2 feriados)"
 
 ---
 
@@ -519,14 +537,22 @@ The Express API (`backend/`) serves the React dashboard with the following endpo
   "firstDiscount": "610.07",
   "secondDiscount": "500.00",
   "netCap": "4991.13",
-  "businessDaysWorked": 16
+  "businessDaysWorked": 16,
+  "totalBusinessDays": 18,
+  "holidays": 2,
+  "cap": 4991.13,
+  "applicable": true,
+  "invoiceYear": 2025,
+  "invoiceMonth": 11
 }
 ```
 
 **Notes:**
 - Cap calculation considers billing cycle dates (not calendar month)
+- Holidays from `config/holidays.json` are subtracted from business days (starting November 2025)
 - Accounting fee only applies from `CAP_ACCOUNTING_START_MONTH/YEAR` onwards
 - October 2025 has special business day override due to transition cycle
+- `businessDaysWorked = totalBusinessDays - holidays`
 
 ### Error Responses
 All endpoints return errors in this format:
@@ -575,6 +601,16 @@ Common HTTP status codes: `200` (Success), `400` (Bad request), `500` (Internal 
 5. **CRITICAL**: Update tests in `tests/test_billing_cycle.py` to cover new scenarios
 6. Run test suite to verify: `python -m pytest tests/test_billing_cycle.py -v`
 7. Restart services: `make restart` or `make rebuild`
+
+### Adding or modifying holidays
+1. Edit `config/holidays.json` with **calendar months** and holiday counts
+   - **CRITICAL**: Use calendar month (where work happens), NOT invoice month
+   - Example: For December 2025 invoice month (Nov 17 - Dec 16), work is in November → use `"2025": { "11": 1 }`
+2. Rebuild containers to apply changes: `make rebuild`
+3. Verify in dashboard: Holiday breakdown displays when holidays > 0
+   - UI shows: "Dias úteis trabalhados: 19 (20 disponíveis - 1 feriado)"
+4. Test API response: `curl http://localhost:3001/api/cap/2025/12 | jq`
+   - Verify `holidays`, `totalBusinessDays`, and `businessDaysWorked` fields
 
 ---
 
@@ -651,6 +687,22 @@ make up
 3. Verify installment distribution CTE in SQL queries
 4. Run billing cycle tests: `pytest tests/test_billing_cycle.py -v`
 5. Check timezone settings (`TZ` in `.env`)
+
+**Cap Calculations Incorrect:**
+1. Verify `config/holidays.json` uses **calendar months** (where work happens), NOT invoice months
+   - Example: For December 2025 invoice month, configure November holiday in `"2025": { "11": 1 }`
+2. Check backend logs for holiday loading errors: `docker logs tgexp_backend 2>&1 | grep -i holiday`
+   - If you see "Could not load holidays.json", verify volume mount in `docker-compose.yml`:
+     ```yaml
+     backend:
+       volumes:
+         - ./config:/config:ro
+     ```
+3. Test API endpoint directly: `curl http://localhost:3001/api/cap/2025/12`
+   - Response should include `"holidays": 1` (or your configured value)
+   - Response should show `"businessDaysWorked"` = `"totalBusinessDays"` - `"holidays"`
+4. After config changes, rebuild containers: `make rebuild`
+5. Verify environment variables are set correctly in `.env` (11 CAP_* variables)
 
 ### Security Best Practices
 

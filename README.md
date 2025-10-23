@@ -336,14 +336,51 @@ CAP_START_YEAR=2025                # Year to start displaying cap
 CAP_OCTOBER_BUSINESS_DAYS=13       # Fixed business days for October 2025
 ```
 
+#### Configuring Business-Day Holidays
+
+Starting from November 2025, you can configure business-day holidays to ensure accurate cap calculations that reflect your actual working days.
+
+**Edit `config/holidays.json` to add holidays:**
+
+```json
+{
+  "2025": {
+    "11": 1,  // 1 holiday in November 2025
+    "12": 2   // 2 holidays in December 2025
+  },
+  "2026": {
+    "1": 1    // 1 holiday in January 2026
+  }
+}
+```
+
+**Important:**
+- Keys represent **calendar months** where work happens (NOT invoice months)
+- For December 2025 invoice month (Nov 17 - Dec 16), work is in November, so configure `"11"`
+- Include both Brazilian national/bank holidays and personal non-working days
+- Missing months default to 0 holidays
+- After editing, restart services: `make rebuild`
+
+**Visual feedback:**
+When holidays are configured (> 0), the dashboard displays a breakdown below the budget cap:
+```
+Dias úteis trabalhados: 18 (20 disponíveis - 2 feriados)
+```
+
+**Example:**
+If November 2025 has 20 business days and you configure 2 holidays, the cap will be calculated with 18 working days (20 - 2).
+
 **How it works:**
 
-1. **Gross Revenue** = Business Days × Daily Hours × Hourly Rate
-2. **Net Revenue** = Gross Revenue - (Accounting Fees + DAS + Pro-Labore INSS)
-3. **Final Cap** = Net Revenue - (Net Revenue × First Discount %) - Fixed Deduction
+1. **Total Business Days** = Weekdays in calendar month (Mon-Fri)
+2. **Business Days Worked** = Total Business Days - Holidays (from `config/holidays.json`)
+3. **Gross Revenue** = Business Days Worked × Daily Hours × Hourly Rate
+4. **Net Revenue** = Gross Revenue - (Accounting Fees + DAS + Pro-Labore INSS)
+5. **Final Cap** = Net Revenue - (Net Revenue × First Discount %) - Fixed Deduction
 
 **Customization tips:**
 - Business days are calculated automatically (Mon-Fri), excluding weekends
+- Holidays are then subtracted from the calculated business days
 - For months you started mid-month, use `CAP_OCTOBER_BUSINESS_DAYS` pattern
 - Set `CAP_START_MONTH` and `CAP_START_YEAR` to control when the cap appears
 - The cap won't display for months before the start date
@@ -651,7 +688,8 @@ In addition to unit tests, verify services are functioning correctly:
 ├── README.md
 ├── package.json                    # Root package with concurrent scripts
 ├── config
-│   └── categories.json             # Allowed values for validation
+│   ├── categories.json             # Allowed values for validation
+│   └── holidays.json               # Business-day holidays per calendar month
 ├── db
 │   └── init
 │       └── schema.sql              # PostgreSQL schema
@@ -748,6 +786,7 @@ In addition to unit tests, verify services are functioning correctly:
 
 **`config/`**: Configuration files
 - `categories.json`: Allowed values for validation (methods, tags, categories)
+- `holidays.json`: Business-day holidays per calendar month (starting Nov 2025)
 
 **`db/init/`**: Database initialization
 - `schema.sql`: PostgreSQL schema with constraints and indexes
@@ -815,6 +854,29 @@ To add or modify categories, tags, or payment methods:
 2. Update database constraints in `db/init/schema.sql`
 3. Rebuild services: `make clean-containers && make up`
 
+### Customizing Business-Day Holidays
+
+To add or modify holidays for accurate cap calculations:
+
+1. Edit `config/holidays.json` with **calendar months** and holiday counts
+   - **CRITICAL**: Use calendar month (where work happens), NOT invoice month
+   - Example: For December 2025 invoice month (Nov 17 - Dec 16), work is in November → configure `"2025": { "11": 1 }`
+2. Rebuild containers to apply changes: `make rebuild`
+3. Verify in dashboard: Holiday breakdown displays when holidays > 0
+   - UI shows: "Dias úteis trabalhados: 19 (20 disponíveis - 1 feriado)"
+4. Test API response: `curl http://localhost:3001/api/cap/2025/12`
+   - Verify `holidays`, `totalBusinessDays`, and `businessDaysWorked` fields match your configuration
+
+**Example configuration:**
+```json
+{
+  "2025": {
+    "11": 1,  // 1 holiday in November 2025 (affects Dec 2025 invoice)
+    "12": 2   // 2 holidays in December 2025 (affects Jan 2026 invoice)
+  }
+}
+```
+
 ### Modifying Billing Cycle Logic
 
 If you need to change the billing cycle transition dates:
@@ -880,6 +942,16 @@ For production-style migrations without data loss, use a migration tool like Ale
 - Verify `POSTGRES_*` credentials in `.env`
 - Ensure database container is healthy: `docker compose ps`
 - Test connection via pgAdmin at http://localhost:5050
+
+**Cap calculations seem incorrect:**
+- Verify `config/holidays.json` uses **calendar months** (where work happens), NOT invoice months
+  - Example: For December 2025 invoice month, configure November holiday in `"2025": { "11": 1 }`
+- Check backend logs for holiday loading errors: `docker logs tgexp_backend | grep -i holiday`
+  - If you see "Could not load holidays.json" error, ensure volume mount is configured in `docker-compose.yml`
+- Test the API endpoint directly: `curl http://localhost:3001/api/cap/2025/12`
+  - Response should include `"holidays"`, `"totalBusinessDays"`, and `"businessDaysWorked"` fields
+- After config changes, rebuild containers: `make rebuild`
+- Verify all 11 CAP_* environment variables are set correctly in `.env`
 
 ## License
 
