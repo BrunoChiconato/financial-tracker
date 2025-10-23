@@ -303,6 +303,54 @@ PGADMIN_DEFAULT_PASSWORD=your_pgadmin_password
 - Never commit the `.env` file to version control (it's already in `.gitignore`)
 - The `ALLOWED_USER_ID` must be set to your Telegram user ID (never use 0 or negative values)
 
+#### Configuring Monthly Budget Cap (Optional)
+
+The dashboard displays a dynamic monthly budget cap calculated based on business days, hourly rates, and deductions. All sensitive parameters are stored in environment variables to keep your financial formulas private.
+
+**To enable or customize the cap calculation, add these variables to your `.env` file:**
+
+```bash
+# Basic Parameters
+CAP_HOURLY_RATE=59.82              # Your hourly rate in BRL
+CAP_DAILY_HOURS=8                  # Working hours per day
+
+# Deduction Percentages (as decimals)
+CAP_DAS_PERCENT=0.06               # DAS tax (6%)
+CAP_PRO_LABORE_PERCENT=0.29        # Pro-Labore percentage (29%)
+CAP_INSS_PERCENT=0.11              # INSS on Pro-Labore (11%)
+
+# Accounting Fees
+CAP_ACCOUNTING_FEE=260.00          # Monthly accounting fee in BRL
+CAP_ACCOUNTING_START_MONTH=12      # Month fees start (1-12)
+CAP_ACCOUNTING_START_YEAR=2025     # Year fees start
+
+# Final Discounts
+CAP_FIRST_DISCOUNT_PERCENT=0.10    # Percentage discount (10%)
+CAP_SECOND_DISCOUNT_FIXED=1000.00  # Fixed discount in BRL
+
+# Display Settings
+CAP_START_MONTH=10                 # Month to start displaying cap (1-12)
+CAP_START_YEAR=2025                # Year to start displaying cap
+
+# Special Cases
+CAP_OCTOBER_BUSINESS_DAYS=13       # Fixed business days for October 2025
+```
+
+**How it works:**
+
+1. **Gross Revenue** = Business Days × Daily Hours × Hourly Rate
+2. **Net Revenue** = Gross Revenue - (Accounting Fees + DAS + Pro-Labore INSS)
+3. **Final Cap** = Net Revenue - (Net Revenue × First Discount %) - Fixed Deduction
+
+**Customization tips:**
+- Business days are calculated automatically (Mon-Fri), excluding weekends
+- For months you started mid-month, use `CAP_OCTOBER_BUSINESS_DAYS` pattern
+- Set `CAP_START_MONTH` and `CAP_START_YEAR` to control when the cap appears
+- The cap won't display for months before the start date
+- All percentage values should be in decimal format (e.g., 0.06 for 6%)
+
+**Security:** These values are never exposed in your public repository. The calculation logic remains private by storing all parameters as environment variables on your local machine.
+
 ### Step 3: Start All Services
 
 Start all services (database, bot, backend API, and frontend dashboard) using Docker Compose:
