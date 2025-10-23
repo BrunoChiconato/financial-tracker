@@ -16,13 +16,13 @@ import { formatCurrency } from "../utils/formatters";
  *
  * @param {Object} props - Component properties
  * @param {Object} props.summary - Summary data from API containing totalSpent, transactionCount, etc.
- * @param {number|null} props.cap - Monthly budget cap (null if not applicable for current period)
+ * @param {Object|null} props.capData - Cap calculation breakdown (null if not applicable)
  * @param {number} props.invoiceYear - Selected invoice year
  * @param {number} props.invoiceMonth - Selected invoice month (1-12)
  * @returns {JSX.Element} Rendered hero section
  */
-export function HeroSection({ summary, cap, invoiceYear, invoiceMonth }) {
-  const budget = cap || 4000;
+export function HeroSection({ summary, capData, invoiceYear, invoiceMonth }) {
+  const budget = capData ? parseFloat(capData.netCap) : 4000;
   const spent = summary?.current?.totalSpent || 0;
   const daysInMonth = 31;
   const today = new Date().getDate();
@@ -88,7 +88,7 @@ export function HeroSection({ summary, cap, invoiceYear, invoiceMonth }) {
               <span className="font-medium">
                 {formatCurrency(spent)}
               </span>{" "}
-              {cap && (
+              {capData && (
                 <>
                   de {formatCurrency(budget)} • faltam{" "}
                   <span className="font-medium">
@@ -97,6 +97,11 @@ export function HeroSection({ summary, cap, invoiceYear, invoiceMonth }) {
                 </>
               )}
             </p>
+            {capData && capData.holidays > 0 && (
+              <p className="text-xs text-slate-500 dark:text-slate-500 mt-1">
+                Dias úteis trabalhados: {capData.businessDaysWorked} ({capData.totalBusinessDays} disponíveis - {capData.holidays} {capData.holidays === 1 ? 'feriado' : 'feriados'})
+              </p>
+            )}
           </div>
           <div className="text-right text-sm text-slate-600 dark:text-slate-400">
             <div className="flex items-center justify-end gap-1">
@@ -116,7 +121,7 @@ export function HeroSection({ summary, cap, invoiceYear, invoiceMonth }) {
           </div>
         </div>
 
-        {cap && !isPastMonth && (
+        {capData && !isPastMonth && (
           <div className="mt-4">
             <div className="relative h-6 rounded-md overflow-hidden bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600">
               <div className="absolute inset-y-0 left-0 w-1/2 bg-slate-100 dark:bg-slate-700" />

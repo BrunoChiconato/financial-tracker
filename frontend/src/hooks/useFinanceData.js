@@ -119,7 +119,7 @@ export const useFinanceData = () => {
         categoryBreakdown: categoryData.data || [],
         tagBreakdown: tagData.data || [],
         momTrends: momData.data || [],
-        cap: capData.applicable ? capData.cap : null,
+        capData: capData.applicable ? capData : null,
       });
 
       setError(null);

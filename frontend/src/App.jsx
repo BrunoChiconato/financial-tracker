@@ -121,7 +121,7 @@ function App() {
           <div className={`transition-opacity duration-150 ${loading ? 'opacity-50' : 'opacity-100'}`}>
             <HeroSection
               summary={displayData.summary}
-              cap={displayData.cap}
+              capData={displayData.capData}
               invoiceYear={filters.invoiceYear}
               invoiceMonth={filters.invoiceMonth}
             />
