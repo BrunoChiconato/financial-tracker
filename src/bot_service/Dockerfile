@@ -15,6 +15,7 @@ RUN pip install --upgrade pip \
  && uv pip install --system --no-cache ".[bot]"
 
 COPY src/ /app/src/
+COPY config/ /app/config/
 
 RUN groupadd -g 1001 appuser && \
     useradd -r -u 1001 -g appuser appuser && \
