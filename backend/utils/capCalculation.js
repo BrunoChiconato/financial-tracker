@@ -13,11 +13,62 @@
  * @module capCalculation
  */
 
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+let holidaysCache = null;
+
+/**
+ * Loads holidays configuration from config/holidays.json.
+ *
+ * @returns {Object} Holidays configuration object
+ */
+function loadHolidays() {
+  if (holidaysCache !== null) {
+    return holidaysCache;
+  }
+
+  try {
+    const configPath = path.join(__dirname, '../../config/holidays.json');
+    const data = fs.readFileSync(configPath, 'utf8');
+    holidaysCache = JSON.parse(data);
+    return holidaysCache;
+  } catch (error) {
+    console.warn('Warning: Could not load holidays.json, defaulting to 0 holidays:', error.message);
+    holidaysCache = {};
+    return holidaysCache;
+  }
+}
+
+/**
+ * Gets the number of holidays for a specific invoice month.
+ *
+ * @param {number} year - Invoice year (e.g., 2025)
+ * @param {number} month - Invoice month (1-12)
+ * @returns {number} Number of holidays, or 0 if not configured
+ */
+function getHolidaysForMonth(year, month) {
+  const holidays = loadHolidays();
+
+  const yearStr = String(year);
+  const monthStr = String(month);
+
+  if (holidays[yearStr] && holidays[yearStr][monthStr] !== undefined) {
+    return parseInt(holidays[yearStr][monthStr]) || 0;
+  }
+
+  return 0;
+}
+
 /**
  * Calculates the number of business days in a given calendar month.
  *
  * Business days are Monday through Friday, excluding weekends.
- * Does not account for holidays.
+ * Does not account for holidays (handled separately).
  *
  * @param {number} year - The year (e.g., 2025)
  * @param {number} month - The month (1-12, where 1 is January)
@@ -58,7 +109,7 @@ function getBusinessDaysInMonth(year, month) {
  *
  * @param {number} invoiceYear - Invoice year (e.g., 2025)
  * @param {number} invoiceMonth - Invoice month (1-12)
- * @returns {number|null} The calculated cap in BRL, or null if cap should not be displayed
+ * @returns {Object|null} Detailed cap calculation breakdown, or null if cap should not be displayed
  */
 export function calculateMonthlyCap(invoiceYear, invoiceMonth) {
   const config = {
@@ -87,42 +138,59 @@ export function calculateMonthlyCap(invoiceYear, invoiceMonth) {
     return null;
   }
 
-  let businessDays;
+  let totalBusinessDays;
   if (calendarYear === 2025 && calendarMonth === 10) {
-    businessDays = config.octoberBusinessDays;
+    totalBusinessDays = config.octoberBusinessDays;
   } else {
-    businessDays = getBusinessDaysInMonth(calendarYear, calendarMonth);
+    totalBusinessDays = getBusinessDaysInMonth(calendarYear, calendarMonth);
   }
 
-  const totalHours = businessDays * config.dailyHours;
-  const grossRevenue = totalHours * config.hourlyRate;
+  const holidays = getHolidaysForMonth(calendarYear, calendarMonth);
+  const businessDaysWorked = Math.max(totalBusinessDays - holidays, 0);
+
+  const totalHours = businessDaysWorked * config.dailyHours;
+  const grossIncome = totalHours * config.hourlyRate;
 
   const accountingStartDate = new Date(config.accountingStartYear, config.accountingStartMonth - 1, 1);
   const accountingFee = targetDate >= accountingStartDate ? config.accountingFee : 0;
 
-  const dasDeduction = grossRevenue * config.dasPercent;
-  const proLaboreBase = grossRevenue * config.proLaborePercent;
-  const inssDeduction = proLaboreBase * config.inssPercent;
+  const dasAmount = grossIncome * config.dasPercent;
+  const proLaboreAmount = grossIncome * config.proLaborePercent;
+  const inssAmount = proLaboreAmount * config.inssPercent;
 
-  const netRevenue = grossRevenue - (accountingFee + dasDeduction + inssDeduction);
+  const totalDeductions = accountingFee + dasAmount + inssAmount;
+  const netAfterDeductions = grossIncome - totalDeductions;
 
-  const firstDiscount = netRevenue * config.firstDiscountPercent;
-  const finalCap = netRevenue - firstDiscount - config.secondDiscountFixed;
+  const firstDiscount = netAfterDeductions * config.firstDiscountPercent;
+  const netCap = netAfterDeductions - firstDiscount - config.secondDiscountFixed;
 
-  return Math.round(finalCap * 100) / 100;
+  return {
+    year: invoiceYear,
+    month: invoiceMonth,
+    grossIncome: (Math.round(grossIncome * 100) / 100).toFixed(2),
+    accountingFee: (Math.round(accountingFee * 100) / 100).toFixed(2),
+    dasAmount: (Math.round(dasAmount * 100) / 100).toFixed(2),
+    proLaboreAmount: (Math.round(proLaboreAmount * 100) / 100).toFixed(2),
+    inssAmount: (Math.round(inssAmount * 100) / 100).toFixed(2),
+    totalDeductions: (Math.round(totalDeductions * 100) / 100).toFixed(2),
+    firstDiscount: (Math.round(firstDiscount * 100) / 100).toFixed(2),
+    secondDiscount: (Math.round(config.secondDiscountFixed * 100) / 100).toFixed(2),
+    netCap: (Math.round(netCap * 100) / 100).toFixed(2),
+    businessDaysWorked: businessDaysWorked,
+    totalBusinessDays: totalBusinessDays,
+    holidays: holidays,
+  };
 }
 
 /**
  * Gets the cap for the current invoice month based on today's date.
  *
- * @returns {number|null} The calculated cap in BRL, or null if not applicable
+ * @returns {Object|null} The calculated cap breakdown, or null if not applicable
  */
 export function getCurrentMonthlyCap() {
   const now = new Date();
   const currentYear = now.getFullYear();
   const currentMonth = now.getMonth() + 1;
-
-
 
   const CYCLE_CHANGE_DATE = new Date(2025, 9, 4);
   const TRANSITION_END_DATE = new Date(2025, 10, 16);

@@ -1,0 +1,25 @@
+{
+  "_comment": "Business-day holidays configuration. Stores the number of non-working days per CALENDAR month.",
+  "_usage": "Key by calendar year, then calendar month (1-12). Example: Work in November 2025 = '2025' -> '11'",
+  "_note": "Use the CALENDAR month where work happens (typically invoice month - 1). For Dec 2025 invoice (Nov 17 - Dec 16), work is in Nov 2025, so use '11'",
+  "_start_date": "Holidays are only applied from November 2025 onwards",
+  "_types": "Include both Brazilian national/bank holidays AND personal non-working days that fall within the calendar month",
+  "2025": {
+    "11": 1,
+    "12": 1
+  },
+  "2026": {
+    "1": 0,
+    "2": 0,
+    "3": 0,
+    "4": 0,
+    "5": 0,
+    "6": 0,
+    "7": 0,
+    "8": 0,
+    "9": 0,
+    "10": 0,
+    "11": 0,
+    "12": 0
+  }
+}

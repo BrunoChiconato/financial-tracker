@@ -403,11 +403,12 @@ app.get('/api/trends/mom', async (req, res) => {
  */
 app.get('/api/cap', async (req, res) => {
   try {
-    const cap = getCurrentMonthlyCap();
+    const capData = getCurrentMonthlyCap();
 
     res.json({
-      cap,
-      applicable: cap !== null,
+      ...capData,
+      cap: capData ? parseFloat(capData.netCap) : null,
+      applicable: capData !== null,
     });
   } catch (error) {
     console.error('Error calculating monthly cap:', error);
@@ -441,11 +442,12 @@ app.get('/api/cap/:year/:month', async (req, res) => {
       });
     }
 
-    const cap = calculateMonthlyCap(year, month);
+    const capData = calculateMonthlyCap(year, month);
 
     res.json({
-      cap,
-      applicable: cap !== null,
+      ...capData,
+      cap: capData ? parseFloat(capData.netCap) : null,
+      applicable: capData !== null,
       invoiceYear: year,
       invoiceMonth: month,
     });
