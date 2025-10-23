@@ -86,6 +86,8 @@ services:
       CAP_OCTOBER_BUSINESS_DAYS: ${CAP_OCTOBER_BUSINESS_DAYS}
     ports:
       - "127.0.0.1:3001:3001"
+    volumes:
+      - ./config:/config:ro
 
   frontend:
     build:
