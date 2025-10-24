@@ -16,14 +16,14 @@ These rules override default behavior and must be followed exactly:
 **Rationale:** Billing cycle errors cause financial discrepancies that are hard to detect and expensive to fix.
 
 ### Rule 2: Database Schema Changes Require Multi-Step Coordination
-**Context:** Four services share one database (bot, Streamlit, backend API, pgAdmin).
+**Context:** Four services share one database (bot, backend API, pgAdmin).
 **Requirement:** When modifying `db/init/schema.sql`:
 1. Update `config/categories.json` if adding allowed values
 2. Update all query methods in `src/storage/repository.py` (Python)
 3. Update all query modules in `backend/utils/queries/` (Node.js)
 4. Update `src/core/models.py` if adding/removing fields
 5. Run `make down && make up` to recreate database with new schema
-6. Verify changes in both Streamlit and React dashboards
+6. Verify changes in React dashboard
 
 **Rationale:** Schema mismatches cause runtime errors in multiple services.
 
@@ -126,7 +126,7 @@ These rules override default behavior and must be followed exactly:
 3. **Configure**: `cp .env.example .env` and fill in required values (see "Environment Setup")
 4. **Start**: `make up` (starts all services with build)
 5. **Test bot**: Send expense to Telegram bot (format: `35,50 - Uber - Cartão de Crédito - Gastos Pessoais - Transporte`)
-6. **View data**: Open http://localhost:5173 (React) or http://localhost:8501 (Streamlit)
+6. **View data**: Open http://localhost:5173
 
 **Common First Tasks:**
 - Add test data via Telegram bot (`/help` for format)
@@ -150,13 +150,12 @@ A full-stack personal expense tracker with dual dashboard options:
 - **Telegram Bot** (`bot_service`): Receives expenses via messages, validates input, stores in database
 - **PostgreSQL Database** (`db`): Stores expense records with installment support and billing cycle transition logic
 - **React Dashboard** (`frontend/`): Modern UI with enhanced UX, color-coded visualizations, and smooth interactions (recommended)
-- **Streamlit Dashboard** (`dashboard_service`): Legacy Python-based dashboard, still functional
 - **Express API** (`backend/`): RESTful Node.js backend serving the React dashboard
 
-All services share a single PostgreSQL database. The React and Streamlit dashboards can coexist.
+All services share a single PostgreSQL database.
 
 **Technology Stack:**
-- **Backend**: Python 3.13 (bot, Streamlit), Node.js 20 (Express API)
+- **Backend**: Python 3.13 (bot), Node.js 20 (Express API)
 - **Frontend**: React 19 + Vite 7 + Tailwind CSS 3.4
 - **Database**: PostgreSQL 16
 - **Infrastructure**: Docker + Docker Compose
@@ -437,7 +436,6 @@ The project includes comprehensive unit tests for the billing cycle logic:
 ### Service Testing
 - **Bot**: Send test message to Telegram bot
 - **React Dashboard**: Access http://localhost:5173
-- **Streamlit Dashboard**: Access http://localhost:8501
 - **Database**: Use pgAdmin at http://localhost:5050 or connect via psql
 - **Health check**: Send `/health` command to bot or `curl http://localhost:3001/api/health`
 
