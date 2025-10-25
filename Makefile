@@ -24,7 +24,7 @@ BOT_STAMP       := .bot-build.stamp
 DASH_STAMP      := .dashboard-build.stamp
 STACK_STAMP     := .stack-build.stamp
 
-.PHONY: help env-check up stop restart logs-bot logs-backend logs-frontend logs-db logs-backup lint clean backup restore clean-containers
+.PHONY: help env-check up stop restart logs-bot logs-backend logs-frontend logs-db logs-backup lint lint-backend lint-frontend lint-all clean backup restore clean-containers test-python test-backend test-frontend test-all ci
 
 help: ## List available commands
 	@echo ""
@@ -77,13 +77,39 @@ clean-containers: ## Remove stopped containers (preserves volumes and data)
 	@echo "✓ Containers removed. Data volumes preserved. Run 'make up' to restart."
 
 lint: ## Lint Python code with Ruff
-	ruff format . && ruff check .
+	uv run ruff format . && uv run ruff check .
+
+lint-backend: ## Lint backend Node.js code
+	cd backend && npm run format --write && npm run format:check
+
+lint-frontend: ## Lint frontend React code
+	cd frontend && npm run lint && npm run format --write && npm run format:check
+
+lint-all: lint lint-backend lint-frontend ## Run all linters (Python, backend, frontend)
+
+test-python: ## Run Python tests with pytest
+	uv run pytest tests/ -v --tb=short
+
+test-backend: ## Run backend Node.js tests
+	cd backend && npm test
+
+test-frontend: ## Run frontend React tests
+	cd frontend && npm test -- --run
+
+test-all: test-python test-backend test-frontend ## Run all tests (Python, backend, frontend)
+
+ci: lint-all test-all ## Run all linters and tests (for CI pipeline)
 
 clean: ## Cleanup caches and __pycache__
 	rm -rf .ruff_cache .pytest_cache
 	find . -type d -name "__pycache__" -exec rm -rf {} +
 	find . -name "*.pyc" -delete
 	find . -name "*.pyo" -delete
+	rm -rf backend/coverage frontend/coverage
+	rm -rf backend/node_modules/.cache frontend/node_modules/.cache node_modules/.cache
+	rm -rf frontend/.vite frontend/node_modules/.vite frontend/node_modules/.vitest
+	rm -rf .jest-cache backend/.jest-cache
+	rm -f .eslintcache backend/.eslintcache frontend/.eslintcache .prettiercache
 
 backup: ## Create database backup
 	@./scripts/backup.sh

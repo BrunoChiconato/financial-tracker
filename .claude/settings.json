@@ -1,3 +1,23 @@
-{
+{  
+    "permissions": {
+        "allow": [
+            "Read(./**)",
+            "Edit(./**)",
+            "Bash(git status:*)",
+            "Bash(git checkout -b:*)",
+            "Bash(git add:*)",
+            "Bash(git commit:*)",
+            "Bash(git rm:*)",
+            "Bash(git push:*)",
+            "Bash(npm install:*)",
+            "Bash(npm run test:*)",
+            "Bash(npm audit:*)",
+            "Bash(pnpm:*)",
+            "Bash(uv:*)",
+            "Bash(pip:*)",
+            "Bash(pytest:*)"
+        ],
+        "defaultMode": "plan"
+    },
     "includeCoAuthoredBy": false 
 }
