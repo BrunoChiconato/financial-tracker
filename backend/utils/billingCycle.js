@@ -68,11 +68,7 @@ export function billingCycleRange(year, month) {
     };
   }
 
-  const changeMonth = new Date(
-    CYCLE_CHANGE_DATE.getFullYear(),
-    CYCLE_CHANGE_DATE.getMonth(),
-    1
-  );
+  const changeMonth = new Date(CYCLE_CHANGE_DATE.getFullYear(), CYCLE_CHANGE_DATE.getMonth(), 1);
 
   if (invoiceMonth >= addMonths(changeMonth, 1)) {
     const cycleDay = CYCLE_RESET_DAY_NEW;

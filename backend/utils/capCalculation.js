@@ -38,7 +38,6 @@ function loadHolidays() {
     holidaysCache = JSON.parse(data);
     return holidaysCache;
   } catch (error) {
-    console.warn('Warning: Could not load holidays.json, defaulting to 0 holidays:', error.message);
     holidaysCache = {};
     return holidaysCache;
   }
@@ -151,7 +150,11 @@ export function calculateMonthlyCap(invoiceYear, invoiceMonth) {
   const totalHours = businessDaysWorked * config.dailyHours;
   const grossIncome = totalHours * config.hourlyRate;
 
-  const accountingStartDate = new Date(config.accountingStartYear, config.accountingStartMonth - 1, 1);
+  const accountingStartDate = new Date(
+    config.accountingStartYear,
+    config.accountingStartMonth - 1,
+    1
+  );
   const accountingFee = targetDate >= accountingStartDate ? config.accountingFee : 0;
 
   const dasAmount = grossIncome * config.dasPercent;

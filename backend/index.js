@@ -8,6 +8,7 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import logger from './utils/logger.js';
 import { query, testConnection } from './db.js';
 import {
   getExpensesQuery,
@@ -25,19 +26,25 @@ import {
 } from './utils/billingCycle.js';
 import { formatCurrency, calculateMoM } from './utils/formatters.js';
 import { getCurrentMonthlyCap, calculateMonthlyCap } from './utils/capCalculation.js';
+import {
+  validateExpensesFilters,
+  validateSummaryFilters,
+  validateChartsFilters,
+  validateTrendsFilters,
+  validateCapParams,
+} from './middleware/validation.js';
 
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-app.use(cors({
-  origin: [
-    'http://localhost:5173',
-    'http://127.0.0.1:5173',
-  ],
-  credentials: true,
-}));
+app.use(
+  cors({
+    origin: ['http://localhost:5173', 'http://127.0.0.1:5173'],
+    credentials: true,
+  })
+);
 
 app.use(express.json());
 
@@ -103,9 +110,8 @@ app.get('/api/filters/metadata', async (req, res) => {
 
     const { categories, tags, min_date, max_date } = result.rows[0];
 
-    const invoiceMonths = min_date && max_date
-      ? generateInvoiceMonths(new Date(min_date), new Date(max_date))
-      : [];
+    const invoiceMonths =
+      min_date && max_date ? generateInvoiceMonths(new Date(min_date), new Date(max_date)) : [];
 
     res.json({
       categories: categories || [],
@@ -117,7 +123,7 @@ app.get('/api/filters/metadata', async (req, res) => {
       invoiceMonths,
     });
   } catch (error) {
-    console.error('Error fetching filter metadata:', error);
+    logger.error('Error fetching filter metadata', { error: error.message, stack: error.stack });
     res.status(500).json({ error: 'Failed to fetch filter metadata' });
   }
 });
@@ -137,7 +143,7 @@ app.get('/api/filters/metadata', async (req, res) => {
  * - tags: Comma-separated list of tags
  * - search: Description search term
  */
-app.get('/api/expenses', async (req, res) => {
+app.get('/api/expenses', validateExpensesFilters, async (req, res) => {
   try {
     const { categories, tags, methods, search } = req.query;
     const { startDate, endDate } = parseDateFilters(req.query);
@@ -159,7 +165,7 @@ app.get('/api/expenses', async (req, res) => {
       count: result.rows.length,
     });
   } catch (error) {
-    console.error('Error fetching expenses:', error);
+    logger.error('Error fetching expenses', { error: error.message, stack: error.stack });
     res.status(500).json({ error: 'Failed to fetch expenses' });
   }
 });
@@ -177,7 +183,7 @@ app.get('/api/expenses', async (req, res) => {
  * - transactionCount: Number of transactions
  * - mom: Month-over-Month comparison data
  */
-app.get('/api/summary', async (req, res) => {
+app.get('/api/summary', validateSummaryFilters, async (req, res) => {
   try {
     const { categories, tags, methods, useInvoiceMonth } = req.query;
     const { startDate, endDate } = parseDateFilters(req.query);
@@ -193,10 +199,7 @@ app.get('/api/summary', async (req, res) => {
       tagsArray,
       methodsArray
     );
-    const currentResult = await query(
-      currentSummaryQuery.text,
-      currentSummaryQuery.values
-    );
+    const currentResult = await query(currentSummaryQuery.text, currentSummaryQuery.values);
 
     const currentData = currentResult.rows[0];
     const totalSpent = parseFloat(currentData.total_spent) || 0;
@@ -207,11 +210,7 @@ app.get('/api/summary', async (req, res) => {
     const daysDuration = Math.floor((end - start) / (1000 * 60 * 60 * 24)) + 1;
     const avgDaily = totalSpent / daysDuration;
 
-    const previousPeriod = getPreviousPeriod(
-      start,
-      end,
-      useInvoiceMonth === 'true'
-    );
+    const previousPeriod = getPreviousPeriod(start, end, useInvoiceMonth === 'true');
 
     const previousSummaryQuery = getSummaryQuery(
       previousPeriod.start.toISOString().split('T')[0],
@@ -220,17 +219,15 @@ app.get('/api/summary', async (req, res) => {
       tagsArray,
       methodsArray
     );
-    const previousResult = await query(
-      previousSummaryQuery.text,
-      previousSummaryQuery.values
-    );
+    const previousResult = await query(previousSummaryQuery.text, previousSummaryQuery.values);
 
     const previousData = previousResult.rows[0];
     const previousTotalSpent = parseFloat(previousData.total_spent) || 0;
 
-    const previousDaysDuration = Math.floor(
-      (previousPeriod.end.getTime() - previousPeriod.start.getTime()) / (1000 * 60 * 60 * 24)
-    ) + 1;
+    const previousDaysDuration =
+      Math.floor(
+        (previousPeriod.end.getTime() - previousPeriod.start.getTime()) / (1000 * 60 * 60 * 24)
+      ) + 1;
     const previousAvgDaily = previousTotalSpent / previousDaysDuration;
 
     const momTotal = calculateMoM(totalSpent, previousTotalSpent);
@@ -257,7 +254,7 @@ app.get('/api/summary', async (req, res) => {
       },
     });
   } catch (error) {
-    console.error('Error fetching summary:', error);
+    logger.error('Error fetching summary', { error: error.message, stack: error.stack });
     res.status(500).json({ error: 'Failed to fetch summary' });
   }
 });
@@ -267,7 +264,7 @@ app.get('/api/summary', async (req, res) => {
  *
  * Returns spending breakdown by category (top 10).
  */
-app.get('/api/charts/category', async (req, res) => {
+app.get('/api/charts/category', validateChartsFilters, async (req, res) => {
   try {
     const { categories, tags, methods } = req.query;
     const { startDate, endDate } = parseDateFilters(req.query);
@@ -293,7 +290,7 @@ app.get('/api/charts/category', async (req, res) => {
 
     res.json({ data });
   } catch (error) {
-    console.error('Error fetching category breakdown:', error);
+    logger.error('Error fetching category breakdown', { error: error.message, stack: error.stack });
     res.status(500).json({ error: 'Failed to fetch category breakdown' });
   }
 });
@@ -303,7 +300,7 @@ app.get('/api/charts/category', async (req, res) => {
  *
  * Returns spending breakdown by tag.
  */
-app.get('/api/charts/tag', async (req, res) => {
+app.get('/api/charts/tag', validateChartsFilters, async (req, res) => {
   try {
     const { categories, tags, methods } = req.query;
     const { startDate, endDate } = parseDateFilters(req.query);
@@ -329,7 +326,7 @@ app.get('/api/charts/tag', async (req, res) => {
 
     res.json({ data });
   } catch (error) {
-    console.error('Error fetching tag breakdown:', error);
+    logger.error('Error fetching tag breakdown', { error: error.message, stack: error.stack });
     res.status(500).json({ error: 'Failed to fetch tag breakdown' });
   }
 });
@@ -343,7 +340,7 @@ app.get('/api/charts/tag', async (req, res) => {
  * - groupBy: 'category' or 'tag'
  * - (plus all other filter parameters)
  */
-app.get('/api/trends/mom', async (req, res) => {
+app.get('/api/trends/mom', validateTrendsFilters, async (req, res) => {
   try {
     const { groupBy = 'category', categories, tags, methods, useInvoiceMonth } = req.query;
     const { startDate, endDate } = parseDateFilters(req.query);
@@ -351,11 +348,7 @@ app.get('/api/trends/mom', async (req, res) => {
     const start = new Date(startDate);
     const end = new Date(endDate);
 
-    const previousPeriod = getPreviousPeriod(
-      start,
-      end,
-      useInvoiceMonth === 'true'
-    );
+    const previousPeriod = getPreviousPeriod(start, end, useInvoiceMonth === 'true');
 
     const categoriesArray = categories ? categories.split(',') : [];
     const tagsArray = tags ? tags.split(',') : [];
@@ -384,7 +377,7 @@ app.get('/api/trends/mom', async (req, res) => {
 
     res.json({ data, groupBy });
   } catch (error) {
-    console.error('Error fetching MoM trends:', error);
+    logger.error('Error fetching MoM trends', { error: error.message, stack: error.stack });
     res.status(500).json({ error: 'Failed to fetch MoM trends' });
   }
 });
@@ -411,7 +404,7 @@ app.get('/api/cap', async (req, res) => {
       applicable: capData !== null,
     });
   } catch (error) {
-    console.error('Error calculating monthly cap:', error);
+    logger.error('Error calculating monthly cap', { error: error.message, stack: error.stack });
     res.status(500).json({ error: 'Failed to calculate monthly cap' });
   }
 });
@@ -431,7 +424,7 @@ app.get('/api/cap', async (req, res) => {
  * - invoiceYear: The invoice year
  * - invoiceMonth: The invoice month
  */
-app.get('/api/cap/:year/:month', async (req, res) => {
+app.get('/api/cap/:year/:month', validateCapParams, async (req, res) => {
   try {
     const year = parseInt(req.params.year);
     const month = parseInt(req.params.month);
@@ -452,15 +445,22 @@ app.get('/api/cap/:year/:month', async (req, res) => {
       invoiceMonth: month,
     });
   } catch (error) {
-    console.error('Error calculating monthly cap:', error);
+    logger.error('Error calculating monthly cap for specific month', {
+      error: error.message,
+      stack: error.stack,
+      year,
+      month,
+    });
     res.status(500).json({ error: 'Failed to calculate monthly cap' });
   }
 });
 
 const server = app.listen(PORT, async () => {
-  console.log(`\n🚀 Financial Tracker API running on port ${PORT}`);
-  console.log(`📍 API URL: http://localhost:${PORT}`);
-  console.log(`📍 Health check: http://localhost:${PORT}/api/health\n`);
+  logger.info('Financial Tracker API started', {
+    port: PORT,
+    apiUrl: `http://localhost:${PORT}`,
+    healthCheckUrl: `http://localhost:${PORT}/api/health`,
+  });
 
   await testConnection();
 });

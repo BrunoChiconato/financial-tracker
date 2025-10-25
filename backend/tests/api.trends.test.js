@@ -10,7 +10,12 @@
 
 import request from 'supertest';
 import app from '../index.js';
-import { clearDatabase, insertExpense, insertMultipleExpenses, validateMoMTrendSchema } from './setup.js';
+import {
+  clearDatabase,
+  insertExpense,
+  insertMultipleExpenses,
+  validateMoMTrendSchema,
+} from './setup.js';
 
 describe('GET /api/trends/mom', () => {
   beforeEach(async () => {
@@ -26,13 +31,11 @@ describe('GET /api/trends/mom', () => {
         category: 'Alimentação',
       });
 
-      const response = await request(app)
-        .get('/api/trends/mom')
-        .query({
-          startDate: '2025-09-01',
-          endDate: '2025-09-30',
-          groupBy: 'category',
-        });
+      const response = await request(app).get('/api/trends/mom').query({
+        startDate: '2025-09-01',
+        endDate: '2025-09-30',
+        groupBy: 'category',
+      });
 
       expect(response.status).toBe(200);
       expect(response.body).toHaveProperty('data');
@@ -53,13 +56,11 @@ describe('GET /api/trends/mom', () => {
         tag: 'Gastos Pessoais',
       });
 
-      const response = await request(app)
-        .get('/api/trends/mom')
-        .query({
-          startDate: '2025-09-01',
-          endDate: '2025-09-30',
-          groupBy: 'tag',
-        });
+      const response = await request(app).get('/api/trends/mom').query({
+        startDate: '2025-09-01',
+        endDate: '2025-09-30',
+        groupBy: 'tag',
+      });
 
       expect(response.status).toBe(200);
       expect(response.body.groupBy).toBe('tag');
@@ -76,12 +77,10 @@ describe('GET /api/trends/mom', () => {
         description: 'Test',
       });
 
-      const response = await request(app)
-        .get('/api/trends/mom')
-        .query({
-          startDate: '2025-09-01',
-          endDate: '2025-09-30',
-        });
+      const response = await request(app).get('/api/trends/mom').query({
+        startDate: '2025-09-01',
+        endDate: '2025-09-30',
+      });
 
       expect(response.status).toBe(200);
       expect(response.body.groupBy).toBe('category');
@@ -119,13 +118,11 @@ describe('GET /api/trends/mom', () => {
     });
 
     it('should group expenses by category', async () => {
-      const response = await request(app)
-        .get('/api/trends/mom')
-        .query({
-          startDate: '2025-09-01',
-          endDate: '2025-09-30',
-          groupBy: 'category',
-        });
+      const response = await request(app).get('/api/trends/mom').query({
+        startDate: '2025-09-01',
+        endDate: '2025-09-30',
+        groupBy: 'category',
+      });
 
       expect(response.status).toBe(200);
       expect(response.body.data.length).toBe(2);
@@ -136,13 +133,11 @@ describe('GET /api/trends/mom', () => {
     });
 
     it('should calculate current and previous totals by category', async () => {
-      const response = await request(app)
-        .get('/api/trends/mom')
-        .query({
-          startDate: '2025-09-01',
-          endDate: '2025-09-30',
-          groupBy: 'category',
-        });
+      const response = await request(app).get('/api/trends/mom').query({
+        startDate: '2025-09-01',
+        endDate: '2025-09-30',
+        groupBy: 'category',
+      });
 
       expect(response.status).toBe(200);
 
@@ -156,13 +151,11 @@ describe('GET /api/trends/mom', () => {
     });
 
     it('should calculate variation amount correctly', async () => {
-      const response = await request(app)
-        .get('/api/trends/mom')
-        .query({
-          startDate: '2025-09-01',
-          endDate: '2025-09-30',
-          groupBy: 'category',
-        });
+      const response = await request(app).get('/api/trends/mom').query({
+        startDate: '2025-09-01',
+        endDate: '2025-09-30',
+        groupBy: 'category',
+      });
 
       expect(response.status).toBe(200);
 
@@ -174,13 +167,11 @@ describe('GET /api/trends/mom', () => {
     });
 
     it('should calculate variation percentage correctly', async () => {
-      const response = await request(app)
-        .get('/api/trends/mom')
-        .query({
-          startDate: '2025-09-01',
-          endDate: '2025-09-30',
-          groupBy: 'category',
-        });
+      const response = await request(app).get('/api/trends/mom').query({
+        startDate: '2025-09-01',
+        endDate: '2025-09-30',
+        groupBy: 'category',
+      });
 
       expect(response.status).toBe(200);
 
@@ -192,13 +183,11 @@ describe('GET /api/trends/mom', () => {
     });
 
     it('should sort categories by current total descending', async () => {
-      const response = await request(app)
-        .get('/api/trends/mom')
-        .query({
-          startDate: '2025-09-01',
-          endDate: '2025-09-30',
-          groupBy: 'category',
-        });
+      const response = await request(app).get('/api/trends/mom').query({
+        startDate: '2025-09-01',
+        endDate: '2025-09-30',
+        groupBy: 'category',
+      });
 
       expect(response.status).toBe(200);
       expect(response.body.data[0].category).toBe('Alimentação');
@@ -237,13 +226,11 @@ describe('GET /api/trends/mom', () => {
     });
 
     it('should group expenses by tag', async () => {
-      const response = await request(app)
-        .get('/api/trends/mom')
-        .query({
-          startDate: '2025-09-01',
-          endDate: '2025-09-30',
-          groupBy: 'tag',
-        });
+      const response = await request(app).get('/api/trends/mom').query({
+        startDate: '2025-09-01',
+        endDate: '2025-09-30',
+        groupBy: 'tag',
+      });
 
       expect(response.status).toBe(200);
       expect(response.body.data.length).toBe(2);
@@ -254,13 +241,11 @@ describe('GET /api/trends/mom', () => {
     });
 
     it('should calculate MoM by tag correctly', async () => {
-      const response = await request(app)
-        .get('/api/trends/mom')
-        .query({
-          startDate: '2025-09-01',
-          endDate: '2025-09-30',
-          groupBy: 'tag',
-        });
+      const response = await request(app).get('/api/trends/mom').query({
+        startDate: '2025-09-01',
+        endDate: '2025-09-30',
+        groupBy: 'tag',
+      });
 
       expect(response.status).toBe(200);
 
@@ -293,14 +278,12 @@ describe('GET /api/trends/mom', () => {
         },
       ]);
 
-      const response = await request(app)
-        .get('/api/trends/mom')
-        .query({
-          useInvoiceMonth: 'true',
-          invoiceYear: '2025',
-          invoiceMonth: '10',
-          groupBy: 'category',
-        });
+      const response = await request(app).get('/api/trends/mom').query({
+        useInvoiceMonth: 'true',
+        invoiceYear: '2025',
+        invoiceMonth: '10',
+        groupBy: 'category',
+      });
 
       expect(response.status).toBe(200);
 
@@ -326,14 +309,12 @@ describe('GET /api/trends/mom', () => {
         },
       ]);
 
-      const response = await request(app)
-        .get('/api/trends/mom')
-        .query({
-          useInvoiceMonth: 'true',
-          invoiceYear: '2025',
-          invoiceMonth: '11',
-          groupBy: 'category',
-        });
+      const response = await request(app).get('/api/trends/mom').query({
+        useInvoiceMonth: 'true',
+        invoiceYear: '2025',
+        invoiceMonth: '11',
+        groupBy: 'category',
+      });
 
       expect(response.status).toBe(200);
 
@@ -359,14 +340,12 @@ describe('GET /api/trends/mom', () => {
         },
       ]);
 
-      const response = await request(app)
-        .get('/api/trends/mom')
-        .query({
-          useInvoiceMonth: 'true',
-          invoiceYear: '2025',
-          invoiceMonth: '12',
-          groupBy: 'category',
-        });
+      const response = await request(app).get('/api/trends/mom').query({
+        useInvoiceMonth: 'true',
+        invoiceYear: '2025',
+        invoiceMonth: '12',
+        groupBy: 'category',
+      });
 
       expect(response.status).toBe(200);
 
@@ -416,14 +395,12 @@ describe('GET /api/trends/mom', () => {
     });
 
     it('should apply category filter to both periods using same parameter', async () => {
-      const response = await request(app)
-        .get('/api/trends/mom')
-        .query({
-          startDate: '2025-09-01',
-          endDate: '2025-09-30',
-          groupBy: 'tag',
-          categories: 'Alimentação',
-        });
+      const response = await request(app).get('/api/trends/mom').query({
+        startDate: '2025-09-01',
+        endDate: '2025-09-30',
+        groupBy: 'tag',
+        categories: 'Alimentação',
+      });
 
       expect(response.status).toBe(200);
 
@@ -437,14 +414,12 @@ describe('GET /api/trends/mom', () => {
     });
 
     it('should apply tag filter to both periods consistently', async () => {
-      const response = await request(app)
-        .get('/api/trends/mom')
-        .query({
-          startDate: '2025-09-01',
-          endDate: '2025-09-30',
-          groupBy: 'category',
-          tags: 'Gastos Pessoais',
-        });
+      const response = await request(app).get('/api/trends/mom').query({
+        startDate: '2025-09-01',
+        endDate: '2025-09-30',
+        groupBy: 'category',
+        tags: 'Gastos Pessoais',
+      });
 
       expect(response.status).toBe(200);
       expect(response.body.data.length).toBe(1);
@@ -456,14 +431,12 @@ describe('GET /api/trends/mom', () => {
     });
 
     it('should apply method filter to both periods', async () => {
-      const response = await request(app)
-        .get('/api/trends/mom')
-        .query({
-          startDate: '2025-09-01',
-          endDate: '2025-09-30',
-          groupBy: 'tag',
-          methods: 'Pix',
-        });
+      const response = await request(app).get('/api/trends/mom').query({
+        startDate: '2025-09-01',
+        endDate: '2025-09-30',
+        groupBy: 'tag',
+        methods: 'Pix',
+      });
 
       expect(response.status).toBe(200);
       expect(response.body.data.length).toBe(1);
@@ -475,16 +448,14 @@ describe('GET /api/trends/mom', () => {
     });
 
     it('should apply multiple filters consistently to both periods', async () => {
-      const response = await request(app)
-        .get('/api/trends/mom')
-        .query({
-          startDate: '2025-09-01',
-          endDate: '2025-09-30',
-          groupBy: 'category',
-          categories: 'Alimentação',
-          tags: 'Gastos do Casal',
-          methods: 'Cartão de Crédito',
-        });
+      const response = await request(app).get('/api/trends/mom').query({
+        startDate: '2025-09-01',
+        endDate: '2025-09-30',
+        groupBy: 'category',
+        categories: 'Alimentação',
+        tags: 'Gastos do Casal',
+        methods: 'Cartão de Crédito',
+      });
 
       expect(response.status).toBe(200);
       expect(response.body.data.length).toBe(1);
@@ -518,13 +489,11 @@ describe('GET /api/trends/mom', () => {
         },
       ]);
 
-      const response = await request(app)
-        .get('/api/trends/mom')
-        .query({
-          startDate: '2025-09-01',
-          endDate: '2025-09-30',
-          groupBy: 'category',
-        });
+      const response = await request(app).get('/api/trends/mom').query({
+        startDate: '2025-09-01',
+        endDate: '2025-09-30',
+        groupBy: 'category',
+      });
 
       expect(response.status).toBe(200);
 
@@ -550,13 +519,11 @@ describe('GET /api/trends/mom', () => {
         },
       ]);
 
-      const response = await request(app)
-        .get('/api/trends/mom')
-        .query({
-          startDate: '2025-09-01',
-          endDate: '2025-09-30',
-          groupBy: 'category',
-        });
+      const response = await request(app).get('/api/trends/mom').query({
+        startDate: '2025-09-01',
+        endDate: '2025-09-30',
+        groupBy: 'category',
+      });
 
       expect(response.status).toBe(200);
 
@@ -582,13 +549,11 @@ describe('GET /api/trends/mom', () => {
         },
       ]);
 
-      const response = await request(app)
-        .get('/api/trends/mom')
-        .query({
-          startDate: '2025-09-01',
-          endDate: '2025-09-30',
-          groupBy: 'category',
-        });
+      const response = await request(app).get('/api/trends/mom').query({
+        startDate: '2025-09-01',
+        endDate: '2025-09-30',
+        groupBy: 'category',
+      });
 
       expect(response.status).toBe(200);
 
@@ -598,13 +563,11 @@ describe('GET /api/trends/mom', () => {
     });
 
     it('should return empty array when no expenses in both periods', async () => {
-      const response = await request(app)
-        .get('/api/trends/mom')
-        .query({
-          startDate: '2025-09-01',
-          endDate: '2025-09-30',
-          groupBy: 'category',
-        });
+      const response = await request(app).get('/api/trends/mom').query({
+        startDate: '2025-09-01',
+        endDate: '2025-09-30',
+        groupBy: 'category',
+      });
 
       expect(response.status).toBe(200);
       expect(response.body.data).toEqual([]);

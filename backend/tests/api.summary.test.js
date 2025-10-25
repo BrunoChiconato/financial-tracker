@@ -10,7 +10,13 @@
 
 import request from 'supertest';
 import app from '../index.js';
-import { clearDatabase, insertExpense, insertMultipleExpenses, testData, validateSummarySchema } from './setup.js';
+import {
+  clearDatabase,
+  insertExpense,
+  insertMultipleExpenses,
+  testData,
+  validateSummarySchema,
+} from './setup.js';
 
 describe('GET /api/summary', () => {
   beforeEach(async () => {
@@ -25,24 +31,20 @@ describe('GET /api/summary', () => {
         description: 'Test',
       });
 
-      const response = await request(app)
-        .get('/api/summary')
-        .query({
-          startDate: '2025-09-01',
-          endDate: '2025-09-30',
-        });
+      const response = await request(app).get('/api/summary').query({
+        startDate: '2025-09-01',
+        endDate: '2025-09-30',
+      });
 
       expect(response.status).toBe(200);
       validateSummarySchema(response.body);
     });
 
     it('should include period dates in response', async () => {
-      const response = await request(app)
-        .get('/api/summary')
-        .query({
-          startDate: '2025-09-01',
-          endDate: '2025-09-30',
-        });
+      const response = await request(app).get('/api/summary').query({
+        startDate: '2025-09-01',
+        endDate: '2025-09-30',
+      });
 
       expect(response.status).toBe(200);
       expect(response.body.current.period.start).toBe('2025-09-01');
@@ -55,16 +57,14 @@ describe('GET /api/summary', () => {
     it('should calculate total spent correctly', async () => {
       await insertMultipleExpenses([
         { expense_ts: new Date('2025-09-10'), amount: 100, description: 'A' },
-        { expense_ts: new Date('2025-09-15'), amount: 250.50, description: 'B' },
+        { expense_ts: new Date('2025-09-15'), amount: 250.5, description: 'B' },
         { expense_ts: new Date('2025-09-20'), amount: 75.25, description: 'C' },
       ]);
 
-      const response = await request(app)
-        .get('/api/summary')
-        .query({
-          startDate: '2025-09-01',
-          endDate: '2025-09-30',
-        });
+      const response = await request(app).get('/api/summary').query({
+        startDate: '2025-09-01',
+        endDate: '2025-09-30',
+      });
 
       expect(response.status).toBe(200);
       expect(response.body.current.totalSpent).toBeCloseTo(425.75, 2);
@@ -76,12 +76,10 @@ describe('GET /api/summary', () => {
         { expense_ts: new Date('2025-09-15'), amount: 200, description: 'B' },
       ]);
 
-      const response = await request(app)
-        .get('/api/summary')
-        .query({
-          startDate: '2025-09-01',
-          endDate: '2025-09-30',
-        });
+      const response = await request(app).get('/api/summary').query({
+        startDate: '2025-09-01',
+        endDate: '2025-09-30',
+      });
 
       expect(response.status).toBe(200);
       expect(response.body.current.avgDaily).toBeCloseTo(10, 2);
@@ -94,12 +92,10 @@ describe('GET /api/summary', () => {
         { expense_ts: new Date('2025-09-20'), amount: 150, description: 'C' },
       ]);
 
-      const response = await request(app)
-        .get('/api/summary')
-        .query({
-          startDate: '2025-09-01',
-          endDate: '2025-09-30',
-        });
+      const response = await request(app).get('/api/summary').query({
+        startDate: '2025-09-01',
+        endDate: '2025-09-30',
+      });
 
       expect(response.status).toBe(200);
       expect(response.body.current.transactionCount).toBe(3);
@@ -113,12 +109,10 @@ describe('GET /api/summary', () => {
         installments: 3,
       });
 
-      const response = await request(app)
-        .get('/api/summary')
-        .query({
-          startDate: '2025-09-01',
-          endDate: '2025-12-31',
-        });
+      const response = await request(app).get('/api/summary').query({
+        startDate: '2025-09-01',
+        endDate: '2025-12-31',
+      });
 
       expect(response.status).toBe(200);
       expect(response.body.current.totalSpent).toBeCloseTo(300, 2);
@@ -141,13 +135,11 @@ describe('GET /api/summary', () => {
         },
       ]);
 
-      const response = await request(app)
-        .get('/api/summary')
-        .query({
-          startDate: '2025-09-01',
-          endDate: '2025-09-30',
-          categories: 'Alimentação',
-        });
+      const response = await request(app).get('/api/summary').query({
+        startDate: '2025-09-01',
+        endDate: '2025-09-30',
+        categories: 'Alimentação',
+      });
 
       expect(response.status).toBe(200);
       expect(response.body.current.totalSpent).toBeCloseTo(100, 2);
@@ -162,13 +154,11 @@ describe('GET /api/summary', () => {
         { expense_ts: new Date('2025-09-10'), amount: 300, description: 'Curr' },
       ]);
 
-      const response = await request(app)
-        .get('/api/summary')
-        .query({
-          startDate: '2025-09-01',
-          endDate: '2025-09-30',
-          useInvoiceMonth: 'false',
-        });
+      const response = await request(app).get('/api/summary').query({
+        startDate: '2025-09-01',
+        endDate: '2025-09-30',
+        useInvoiceMonth: 'false',
+      });
 
       expect(response.status).toBe(200);
       expect(response.body.current.totalSpent).toBeCloseTo(300, 2);
@@ -184,13 +174,11 @@ describe('GET /api/summary', () => {
         { expense_ts: new Date('2025-09-15'), amount: 500, description: 'Curr' },
       ]);
 
-      const response = await request(app)
-        .get('/api/summary')
-        .query({
-          useInvoiceMonth: 'true',
-          invoiceYear: '2025',
-          invoiceMonth: '10',
-        });
+      const response = await request(app).get('/api/summary').query({
+        useInvoiceMonth: 'true',
+        invoiceYear: '2025',
+        invoiceMonth: '10',
+      });
 
       expect(response.status).toBe(200);
       expect(response.body.current.totalSpent).toBeCloseTo(500, 2);
@@ -206,13 +194,11 @@ describe('GET /api/summary', () => {
         { expense_ts: new Date('2025-10-20'), amount: 880, description: 'Curr' },
       ]);
 
-      const response = await request(app)
-        .get('/api/summary')
-        .query({
-          useInvoiceMonth: 'true',
-          invoiceYear: '2025',
-          invoiceMonth: '11',
-        });
+      const response = await request(app).get('/api/summary').query({
+        useInvoiceMonth: 'true',
+        invoiceYear: '2025',
+        invoiceMonth: '11',
+      });
 
       expect(response.status).toBe(200);
       expect(response.body.current.totalSpent).toBeCloseTo(880, 2);
@@ -228,13 +214,11 @@ describe('GET /api/summary', () => {
         { expense_ts: new Date('2025-11-25'), amount: 700, description: 'Curr' },
       ]);
 
-      const response = await request(app)
-        .get('/api/summary')
-        .query({
-          useInvoiceMonth: 'true',
-          invoiceYear: '2025',
-          invoiceMonth: '12',
-        });
+      const response = await request(app).get('/api/summary').query({
+        useInvoiceMonth: 'true',
+        invoiceYear: '2025',
+        invoiceMonth: '12',
+      });
 
       expect(response.status).toBe(200);
       expect(response.body.current.totalSpent).toBeCloseTo(700, 2);
@@ -250,12 +234,10 @@ describe('GET /api/summary', () => {
         description: 'Current Only',
       });
 
-      const response = await request(app)
-        .get('/api/summary')
-        .query({
-          startDate: '2025-09-01',
-          endDate: '2025-09-30',
-        });
+      const response = await request(app).get('/api/summary').query({
+        startDate: '2025-09-01',
+        endDate: '2025-09-30',
+      });
 
       expect(response.status).toBe(200);
       expect(response.body.current.totalSpent).toBeCloseTo(200, 2);
@@ -270,12 +252,10 @@ describe('GET /api/summary', () => {
         { expense_ts: new Date('2025-09-10'), amount: 600, description: 'Curr' },
       ]);
 
-      const response = await request(app)
-        .get('/api/summary')
-        .query({
-          startDate: '2025-09-01',
-          endDate: '2025-09-30',
-        });
+      const response = await request(app).get('/api/summary').query({
+        startDate: '2025-09-01',
+        endDate: '2025-09-30',
+      });
 
       expect(response.status).toBe(200);
       expect(response.body.current.totalSpent).toBeCloseTo(600, 2);
@@ -294,12 +274,10 @@ describe('GET /api/summary', () => {
         description: 'Single Day',
       });
 
-      const response = await request(app)
-        .get('/api/summary')
-        .query({
-          startDate: '2025-09-15',
-          endDate: '2025-09-15',
-        });
+      const response = await request(app).get('/api/summary').query({
+        startDate: '2025-09-15',
+        endDate: '2025-09-15',
+      });
 
       expect(response.status).toBe(200);
       expect(response.body.current.avgDaily).toBeCloseTo(100, 2);
@@ -312,12 +290,10 @@ describe('GET /api/summary', () => {
         { expense_ts: new Date('2025-09-20'), amount: 300, description: 'C' },
       ]);
 
-      const response = await request(app)
-        .get('/api/summary')
-        .query({
-          startDate: '2025-09-01',
-          endDate: '2025-09-30',
-        });
+      const response = await request(app).get('/api/summary').query({
+        startDate: '2025-09-01',
+        endDate: '2025-09-30',
+      });
 
       expect(response.status).toBe(200);
       expect(response.body.current.avgDaily).toBeCloseTo(20, 2);
@@ -329,12 +305,10 @@ describe('GET /api/summary', () => {
         { expense_ts: new Date('2025-09-10'), amount: 600, description: 'Curr' },
       ]);
 
-      const response = await request(app)
-        .get('/api/summary')
-        .query({
-          startDate: '2025-09-01',
-          endDate: '2025-09-30',
-        });
+      const response = await request(app).get('/api/summary').query({
+        startDate: '2025-09-01',
+        endDate: '2025-09-30',
+      });
 
       expect(response.status).toBe(200);
       expect(response.body.current.avgDaily).toBeCloseTo(20, 2);
@@ -365,13 +339,11 @@ describe('GET /api/summary', () => {
     });
 
     it('should apply category filter to both current and previous periods', async () => {
-      const response = await request(app)
-        .get('/api/summary')
-        .query({
-          startDate: '2025-09-01',
-          endDate: '2025-09-30',
-          categories: 'Alimentação',
-        });
+      const response = await request(app).get('/api/summary').query({
+        startDate: '2025-09-01',
+        endDate: '2025-09-30',
+        categories: 'Alimentação',
+      });
 
       expect(response.status).toBe(200);
       expect(response.body.current.totalSpent).toBeCloseTo(100, 2);
@@ -379,13 +351,11 @@ describe('GET /api/summary', () => {
     });
 
     it('should apply tag filter to summary', async () => {
-      const response = await request(app)
-        .get('/api/summary')
-        .query({
-          startDate: '2025-09-01',
-          endDate: '2025-09-30',
-          tags: 'Gastos do Casal',
-        });
+      const response = await request(app).get('/api/summary').query({
+        startDate: '2025-09-01',
+        endDate: '2025-09-30',
+        tags: 'Gastos do Casal',
+      });
 
       expect(response.status).toBe(200);
       expect(response.body.current.totalSpent).toBeCloseTo(200, 2);
@@ -402,15 +372,13 @@ describe('GET /api/summary', () => {
         method: 'Cartão de Crédito',
       });
 
-      const response = await request(app)
-        .get('/api/summary')
-        .query({
-          startDate: '2025-09-01',
-          endDate: '2025-09-30',
-          categories: 'Supermercado',
-          tags: 'Gastos de Casa',
-          methods: 'Cartão de Crédito',
-        });
+      const response = await request(app).get('/api/summary').query({
+        startDate: '2025-09-01',
+        endDate: '2025-09-30',
+        categories: 'Supermercado',
+        tags: 'Gastos de Casa',
+        methods: 'Cartão de Crédito',
+      });
 
       expect(response.status).toBe(200);
       expect(response.body.current.totalSpent).toBeCloseTo(150, 2);
@@ -419,12 +387,10 @@ describe('GET /api/summary', () => {
 
   describe('Edge Cases', () => {
     it('should handle empty current period', async () => {
-      const response = await request(app)
-        .get('/api/summary')
-        .query({
-          startDate: '2025-09-01',
-          endDate: '2025-09-30',
-        });
+      const response = await request(app).get('/api/summary').query({
+        startDate: '2025-09-01',
+        endDate: '2025-09-30',
+      });
 
       expect(response.status).toBe(200);
       expect(response.body.current.totalSpent).toBe(0);
@@ -439,12 +405,10 @@ describe('GET /api/summary', () => {
         description: 'Leap Year',
       });
 
-      const response = await request(app)
-        .get('/api/summary')
-        .query({
-          startDate: '2024-02-01',
-          endDate: '2024-02-29',
-        });
+      const response = await request(app).get('/api/summary').query({
+        startDate: '2024-02-01',
+        endDate: '2024-02-29',
+      });
 
       expect(response.status).toBe(200);
       expect(response.body.current.avgDaily).toBeCloseTo(10, 2);

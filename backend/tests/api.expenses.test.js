@@ -10,7 +10,13 @@
 
 import request from 'supertest';
 import app from '../index.js';
-import { clearDatabase, insertExpense, insertMultipleExpenses, testData, validateExpenseSchema } from './setup.js';
+import {
+  clearDatabase,
+  insertExpense,
+  insertMultipleExpenses,
+  testData,
+  validateExpenseSchema,
+} from './setup.js';
 
 describe('GET /api/expenses', () => {
   beforeEach(async () => {
@@ -25,12 +31,10 @@ describe('GET /api/expenses', () => {
         description: 'Test Expense',
       });
 
-      const response = await request(app)
-        .get('/api/expenses')
-        .query({
-          startDate: '2025-09-01',
-          endDate: '2025-09-30',
-        });
+      const response = await request(app).get('/api/expenses').query({
+        startDate: '2025-09-01',
+        endDate: '2025-09-30',
+      });
 
       expect(response.status).toBe(200);
       expect(response.body).toHaveProperty('expenses');
@@ -57,12 +61,10 @@ describe('GET /api/expenses', () => {
         },
       ]);
 
-      const response = await request(app)
-        .get('/api/expenses')
-        .query({
-          startDate: '2025-09-01',
-          endDate: '2025-09-30',
-        });
+      const response = await request(app).get('/api/expenses').query({
+        startDate: '2025-09-01',
+        endDate: '2025-09-30',
+      });
 
       expect(response.status).toBe(200);
       expect(response.body.count).toBe(1);
@@ -76,13 +78,11 @@ describe('GET /api/expenses', () => {
         description: 'Old Cycle Expense',
       });
 
-      const response = await request(app)
-        .get('/api/expenses')
-        .query({
-          useInvoiceMonth: 'true',
-          invoiceYear: '2025',
-          invoiceMonth: '10',
-        });
+      const response = await request(app).get('/api/expenses').query({
+        useInvoiceMonth: 'true',
+        invoiceYear: '2025',
+        invoiceMonth: '10',
+      });
 
       expect(response.status).toBe(200);
       expect(response.body.count).toBeGreaterThan(0);
@@ -120,13 +120,11 @@ describe('GET /api/expenses', () => {
     });
 
     it('should filter by single category', async () => {
-      const response = await request(app)
-        .get('/api/expenses')
-        .query({
-          startDate: '2025-09-01',
-          endDate: '2025-09-30',
-          categories: 'Transporte',
-        });
+      const response = await request(app).get('/api/expenses').query({
+        startDate: '2025-09-01',
+        endDate: '2025-09-30',
+        categories: 'Transporte',
+      });
 
       expect(response.status).toBe(200);
       expect(response.body.count).toBe(1);
@@ -134,26 +132,22 @@ describe('GET /api/expenses', () => {
     });
 
     it('should filter by multiple categories', async () => {
-      const response = await request(app)
-        .get('/api/expenses')
-        .query({
-          startDate: '2025-09-01',
-          endDate: '2025-09-30',
-          categories: 'Transporte,Supermercado',
-        });
+      const response = await request(app).get('/api/expenses').query({
+        startDate: '2025-09-01',
+        endDate: '2025-09-30',
+        categories: 'Transporte,Supermercado',
+      });
 
       expect(response.status).toBe(200);
       expect(response.body.count).toBe(2);
     });
 
     it('should filter by single tag', async () => {
-      const response = await request(app)
-        .get('/api/expenses')
-        .query({
-          startDate: '2025-09-01',
-          endDate: '2025-09-30',
-          tags: 'Gastos Pessoais',
-        });
+      const response = await request(app).get('/api/expenses').query({
+        startDate: '2025-09-01',
+        endDate: '2025-09-30',
+        tags: 'Gastos Pessoais',
+      });
 
       expect(response.status).toBe(200);
       expect(response.body.count).toBe(1);
@@ -161,26 +155,22 @@ describe('GET /api/expenses', () => {
     });
 
     it('should filter by multiple tags', async () => {
-      const response = await request(app)
-        .get('/api/expenses')
-        .query({
-          startDate: '2025-09-01',
-          endDate: '2025-09-30',
-          tags: 'Gastos Pessoais,Gastos de Casa',
-        });
+      const response = await request(app).get('/api/expenses').query({
+        startDate: '2025-09-01',
+        endDate: '2025-09-30',
+        tags: 'Gastos Pessoais,Gastos de Casa',
+      });
 
       expect(response.status).toBe(200);
       expect(response.body.count).toBe(2);
     });
 
     it('should filter by payment method', async () => {
-      const response = await request(app)
-        .get('/api/expenses')
-        .query({
-          startDate: '2025-09-01',
-          endDate: '2025-09-30',
-          methods: 'Pix',
-        });
+      const response = await request(app).get('/api/expenses').query({
+        startDate: '2025-09-01',
+        endDate: '2025-09-30',
+        methods: 'Pix',
+      });
 
       expect(response.status).toBe(200);
       expect(response.body.count).toBe(1);
@@ -188,13 +178,11 @@ describe('GET /api/expenses', () => {
     });
 
     it('should filter by description search (case insensitive)', async () => {
-      const response = await request(app)
-        .get('/api/expenses')
-        .query({
-          startDate: '2025-09-01',
-          endDate: '2025-09-30',
-          search: 'uber',
-        });
+      const response = await request(app).get('/api/expenses').query({
+        startDate: '2025-09-01',
+        endDate: '2025-09-30',
+        search: 'uber',
+      });
 
       expect(response.status).toBe(200);
       expect(response.body.count).toBe(1);
@@ -202,15 +190,13 @@ describe('GET /api/expenses', () => {
     });
 
     it('should combine multiple filters (category + tag + method)', async () => {
-      const response = await request(app)
-        .get('/api/expenses')
-        .query({
-          startDate: '2025-09-01',
-          endDate: '2025-09-30',
-          categories: 'Supermercado',
-          tags: 'Gastos de Casa',
-          methods: 'Cartão de Crédito',
-        });
+      const response = await request(app).get('/api/expenses').query({
+        startDate: '2025-09-01',
+        endDate: '2025-09-30',
+        categories: 'Supermercado',
+        tags: 'Gastos de Casa',
+        methods: 'Cartão de Crédito',
+      });
 
       expect(response.status).toBe(200);
       expect(response.body.count).toBe(1);
@@ -218,13 +204,11 @@ describe('GET /api/expenses', () => {
     });
 
     it('should return empty array when no expenses match filters', async () => {
-      const response = await request(app)
-        .get('/api/expenses')
-        .query({
-          startDate: '2025-09-01',
-          endDate: '2025-09-30',
-          categories: 'Viagem',
-        });
+      const response = await request(app).get('/api/expenses').query({
+        startDate: '2025-09-01',
+        endDate: '2025-09-30',
+        categories: 'Viagem',
+      });
 
       expect(response.status).toBe(200);
       expect(response.body.count).toBe(0);
@@ -241,12 +225,10 @@ describe('GET /api/expenses', () => {
         installments: 3,
       });
 
-      const response = await request(app)
-        .get('/api/expenses')
-        .query({
-          startDate: '2025-09-01',
-          endDate: '2025-12-31',
-        });
+      const response = await request(app).get('/api/expenses').query({
+        startDate: '2025-09-01',
+        endDate: '2025-12-31',
+      });
 
       expect(response.status).toBe(200);
       expect(response.body.count).toBe(3);
@@ -268,12 +250,10 @@ describe('GET /api/expenses', () => {
         installments: 3,
       });
 
-      const response = await request(app)
-        .get('/api/expenses')
-        .query({
-          startDate: '2025-09-01',
-          endDate: '2025-12-31',
-        });
+      const response = await request(app).get('/api/expenses').query({
+        startDate: '2025-09-01',
+        endDate: '2025-12-31',
+      });
 
       expect(response.status).toBe(200);
       expect(response.body.count).toBe(3);
@@ -293,12 +273,10 @@ describe('GET /api/expenses', () => {
         installments: 3,
       });
 
-      const response = await request(app)
-        .get('/api/expenses')
-        .query({
-          startDate: '2025-10-01',
-          endDate: '2026-01-31',
-        });
+      const response = await request(app).get('/api/expenses').query({
+        startDate: '2025-10-01',
+        endDate: '2026-01-31',
+      });
 
       expect(response.status).toBe(200);
       expect(response.body.count).toBe(3);
@@ -316,12 +294,10 @@ describe('GET /api/expenses', () => {
         installments: 1,
       });
 
-      const response = await request(app)
-        .get('/api/expenses')
-        .query({
-          startDate: '2025-09-01',
-          endDate: '2025-09-30',
-        });
+      const response = await request(app).get('/api/expenses').query({
+        startDate: '2025-09-01',
+        endDate: '2025-09-30',
+      });
 
       expect(response.status).toBe(200);
       expect(response.body.count).toBe(1);
@@ -337,12 +313,10 @@ describe('GET /api/expenses', () => {
         installments: 3,
       });
 
-      const response = await request(app)
-        .get('/api/expenses')
-        .query({
-          startDate: '2025-10-01',
-          endDate: '2025-10-31',
-        });
+      const response = await request(app).get('/api/expenses').query({
+        startDate: '2025-10-01',
+        endDate: '2025-10-31',
+      });
 
       expect(response.status).toBe(200);
       expect(response.body.count).toBeGreaterThan(0);
@@ -356,12 +330,10 @@ describe('GET /api/expenses', () => {
         installments: 12,
       });
 
-      const response = await request(app)
-        .get('/api/expenses')
-        .query({
-          startDate: '2025-01-01',
-          endDate: '2025-12-31',
-        });
+      const response = await request(app).get('/api/expenses').query({
+        startDate: '2025-01-01',
+        endDate: '2025-12-31',
+      });
 
       expect(response.status).toBe(200);
       expect(response.body.count).toBe(12);
@@ -380,12 +352,10 @@ describe('GET /api/expenses', () => {
         description: 'Test',
       });
 
-      const response = await request(app)
-        .get('/api/expenses')
-        .query({
-          startDate: '2025-09-01',
-          endDate: '2025-09-30',
-        });
+      const response = await request(app).get('/api/expenses').query({
+        startDate: '2025-09-01',
+        endDate: '2025-09-30',
+      });
 
       expect(response.status).toBe(200);
       expect(response.body.expenses.length).toBeGreaterThan(0);
@@ -413,12 +383,10 @@ describe('GET /api/expenses', () => {
         },
       ]);
 
-      const response = await request(app)
-        .get('/api/expenses')
-        .query({
-          startDate: '2025-09-01',
-          endDate: '2025-09-30',
-        });
+      const response = await request(app).get('/api/expenses').query({
+        startDate: '2025-09-01',
+        endDate: '2025-09-30',
+      });
 
       expect(response.status).toBe(200);
       expect(response.body.expenses[0].description).toBe('Second');
@@ -434,12 +402,10 @@ describe('GET /api/expenses', () => {
         description: 'August Expense',
       });
 
-      const response = await request(app)
-        .get('/api/expenses')
-        .query({
-          startDate: '2025-09-01',
-          endDate: '2025-09-30',
-        });
+      const response = await request(app).get('/api/expenses').query({
+        startDate: '2025-09-01',
+        endDate: '2025-09-30',
+      });
 
       expect(response.status).toBe(200);
       expect(response.body.count).toBe(0);
@@ -454,12 +420,10 @@ describe('GET /api/expenses', () => {
         installments: null,
       });
 
-      const response = await request(app)
-        .get('/api/expenses')
-        .query({
-          startDate: '2025-09-01',
-          endDate: '2025-09-30',
-        });
+      const response = await request(app).get('/api/expenses').query({
+        startDate: '2025-09-01',
+        endDate: '2025-09-30',
+      });
 
       expect(response.status).toBe(200);
       expect(response.body.count).toBe(1);
@@ -474,12 +438,10 @@ describe('GET /api/expenses', () => {
         { expense_ts: sameDate, amount: 150, description: 'Expense 3' },
       ]);
 
-      const response = await request(app)
-        .get('/api/expenses')
-        .query({
-          startDate: '2025-09-01',
-          endDate: '2025-09-30',
-        });
+      const response = await request(app).get('/api/expenses').query({
+        startDate: '2025-09-01',
+        endDate: '2025-09-30',
+      });
 
       expect(response.status).toBe(200);
       expect(response.body.count).toBe(3);

@@ -71,7 +71,7 @@ export const testData = {
   oldCycleExpenses: [
     {
       expense_ts: new Date('2025-09-05T10:00:00Z'),
-      amount: 100.50,
+      amount: 100.5,
       description: 'Grocery Shopping',
       method: 'Cartão de Crédito',
       tag: 'Gastos de Casa',
@@ -79,7 +79,7 @@ export const testData = {
     },
     {
       expense_ts: new Date('2025-09-15T14:30:00Z'),
-      amount: 50.00,
+      amount: 50.0,
       description: 'Uber Ride',
       method: 'Pix',
       tag: 'Gastos Pessoais',
@@ -90,7 +90,7 @@ export const testData = {
   transitionCycleExpenses: [
     {
       expense_ts: new Date('2025-10-10T09:00:00Z'),
-      amount: 200.00,
+      amount: 200.0,
       description: 'Restaurant',
       method: 'Cartão de Débito',
       tag: 'Gastos do Casal',
@@ -109,7 +109,7 @@ export const testData = {
   newCycleExpenses: [
     {
       expense_ts: new Date('2025-11-20T11:00:00Z'),
-      amount: 300.00,
+      amount: 300.0,
       description: 'Electronics',
       method: 'Cartão de Crédito',
       tag: 'Gastos Pessoais',
@@ -127,7 +127,7 @@ export const testData = {
 
   installmentExpense: {
     expense_ts: new Date('2025-09-10T10:00:00Z'),
-    amount: 600.00,
+    amount: 600.0,
     description: 'Laptop',
     method: 'Cartão de Crédito',
     tag: 'Gastos Pessoais',
