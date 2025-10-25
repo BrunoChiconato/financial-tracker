@@ -85,7 +85,9 @@ ALLOWED_METHODS: dict[str, str] = _app_config.get("methods", {})
 ALLOWED_TAGS: dict[str, str] = _app_config.get("tags", {})
 CATEGORIES_DISPLAY: list[str] = _app_config.get("categories_display", [])
 
-ALLOWED_CATEGORIES: dict[str, str] = {_strip_accents_lower(cat): cat for cat in CATEGORIES_DISPLAY}
+ALLOWED_CATEGORIES: dict[str, str] = {
+    _strip_accents_lower(cat): cat for cat in CATEGORIES_DISPLAY
+}
 
 SEP_RE: re.Pattern[str] = re.compile(r"\s*(?:-+|;|\||,(?!\d))\s*")
 

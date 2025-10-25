@@ -91,8 +91,8 @@ def escape_markdown_v2(text: str) -> str:
     Returns:
         Text with all special MarkdownV2 characters escaped.
     """
-    escape_chars = r"[_*\[\]()~`>#+-=|{}.!]"
-    return re.sub(f"({escape_chars})", r"\\\1", text)
+    escape_chars = r"[_*\[\]()~`>#\+\-=|{}.!?]"
+    return re.sub(escape_chars, lambda m: f"\\{m.group(0)}", text)
 
 
 def get_current_and_previous_cycle_dates(today: date) -> dict[str, dict[str, date]]:

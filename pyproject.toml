@@ -11,18 +11,19 @@ dependencies = [
     "uv>=0.8.11",
     "pandas==2.2.3",
     "ruff>=0.12.11",
+    "pytest>=8.4.2",
 ]
 
 [project.optional-dependencies]
 bot = [
     "python-telegram-bot>=20.7,<23",
 ]
-dashboard = [
-    "streamlit==1.37.1",
-    "plotly>=5.0.0",
-    "matplotlib>=3.7.0",
-]
 dev = [
     "ruff>=0.1.11",
     "pytest>=8.0.0",
+]
+
+[dependency-groups]
+dev = [
+    "pytest-asyncio>=1.2.0",
 ]
