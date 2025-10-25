@@ -114,11 +114,16 @@ export function TransactionsTable({ expenses }) {
             </thead>
             <tbody>
               {sortedExpenses.map((expense, index) => (
-                <tr key={`${expense.id}-${index}`} className="border-b dark:border-slate-700 last:border-0 hover:bg-slate-50 dark:hover:bg-slate-700/50">
+                <tr
+                  key={`${expense.id}-${index}`}
+                  className="border-b dark:border-slate-700 last:border-0 hover:bg-slate-50 dark:hover:bg-slate-700/50"
+                >
                   <td className="py-2 px-3 whitespace-nowrap font-mono text-xs text-slate-900 dark:text-slate-300">
                     {formatDateTime(expense.expense_ts)}
                   </td>
-                  <td className="py-2 px-3 text-slate-900 dark:text-slate-100">{expense.description}</td>
+                  <td className="py-2 px-3 text-slate-900 dark:text-slate-100">
+                    {expense.description}
+                  </td>
                   <td className="py-2 px-3 text-right font-medium text-slate-900 dark:text-slate-100">
                     {formatCurrency(expense.amount)}
                   </td>

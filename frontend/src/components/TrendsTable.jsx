@@ -88,7 +88,10 @@ export function TrendsTable({ data, groupBy, setGroupBy }) {
                   : 'text-green-700 dark:text-green-400';
 
               return (
-                <tr key={index} className="border-b dark:border-slate-700 last:border-0 hover:bg-slate-50 dark:hover:bg-slate-700/50">
+                <tr
+                  key={index}
+                  className="border-b dark:border-slate-700 last:border-0 hover:bg-slate-50 dark:hover:bg-slate-700/50"
+                >
                   <td className="py-2 px-4 font-medium text-slate-900 dark:text-slate-100">
                     {row.category || row.tag}
                   </td>

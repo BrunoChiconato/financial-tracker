@@ -13,13 +13,7 @@
 import { SectionTitle } from './SectionTitle';
 import { formatCurrency } from '../utils/formatters';
 
-const TAG_COLORS = [
-  'bg-slate-300',
-  'bg-slate-400',
-  'bg-slate-500',
-  'bg-slate-600',
-  'bg-slate-700',
-];
+const TAG_COLORS = ['bg-slate-300', 'bg-slate-400', 'bg-slate-500', 'bg-slate-600', 'bg-slate-700'];
 
 export function TagChart({ data }) {
   const tagData = data || [];
@@ -63,8 +57,7 @@ export function TagChart({ data }) {
                   <span className="text-slate-700 dark:text-slate-300">{tag.name}</span>
                 </div>
                 <div className="text-slate-600 dark:text-slate-400">
-                  {formatCurrency(tag.value)} •{" "}
-                  {tag.percentage.toFixed(1)}%
+                  {formatCurrency(tag.value)} • {tag.percentage.toFixed(1)}%
                 </div>
               </div>
             ))}

@@ -47,9 +47,7 @@ export function Filters({ metadata, filters, setCategories, setTags, setMethods,
   };
 
   const handleTagToggle = (tag, checked) => {
-    const newTags = checked
-      ? [...filters.tags, tag]
-      : filters.tags.filter((t) => t !== tag);
+    const newTags = checked ? [...filters.tags, tag] : filters.tags.filter((t) => t !== tag);
     setTags(newTags);
   };
 
@@ -60,12 +58,7 @@ export function Filters({ metadata, filters, setCategories, setTags, setMethods,
     setMethods(newMethods);
   };
 
-  const paymentMethods = [
-    'Cartão de Crédito',
-    'Pix',
-    'Cartão de Débito',
-    'Boleto',
-  ];
+  const paymentMethods = ['Cartão de Crédito', 'Pix', 'Cartão de Débito', 'Boleto'];
 
   return (
     <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 p-5">

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState } from 'react';
 
 /**
  * FilterGroup Component
@@ -15,9 +15,16 @@ import { useState } from "react";
  * @param {boolean} [props.defaultOpen=true] - Whether the group starts expanded
  * @returns {JSX.Element} Rendered filter group
  */
-export function FilterGroup({ title, items, selectedItems, onToggle, onSelectAll, defaultOpen = true }) {
+export function FilterGroup({
+  title,
+  items,
+  selectedItems,
+  onToggle,
+  onSelectAll,
+  defaultOpen = true,
+}) {
   const [open, setOpen] = useState(defaultOpen);
-  const [searchTerm, setSearchTerm] = useState("");
+  const [searchTerm, setSearchTerm] = useState('');
 
   const filteredItems = items.filter((item) =>
     item.toLowerCase().includes(searchTerm.toLowerCase())
@@ -39,7 +46,7 @@ export function FilterGroup({ title, items, selectedItems, onToggle, onSelectAll
         className="w-full flex items-center justify-between px-3 py-2 text-sm hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
       >
         <span className="font-medium text-slate-900 dark:text-slate-100">{title}</span>
-        <span className="text-slate-500 dark:text-slate-400">{open ? "−" : "+"}</span>
+        <span className="text-slate-500 dark:text-slate-400">{open ? '−' : '+'}</span>
       </button>
       {open && (
         <div className="px-3 pb-2">
@@ -58,12 +65,15 @@ export function FilterGroup({ title, items, selectedItems, onToggle, onSelectAll
               onClick={handleToggleAll}
               className="text-xs text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 underline"
             >
-              {selectedItems.length === items.length ? "Desmarcar todos" : "Selecionar todos"}
+              {selectedItems.length === items.length ? 'Desmarcar todos' : 'Selecionar todos'}
             </button>
           </div>
           <div className="space-y-1 max-h-48 overflow-y-auto">
             {filteredItems.map((item) => (
-              <label key={item} className="flex items-center gap-2 text-sm cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700/50 p-1 rounded">
+              <label
+                key={item}
+                className="flex items-center gap-2 text-sm cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700/50 p-1 rounded"
+              >
                 <input
                   type="checkbox"
                   checked={selectedItems.includes(item)}
@@ -75,7 +85,9 @@ export function FilterGroup({ title, items, selectedItems, onToggle, onSelectAll
             ))}
           </div>
           {filteredItems.length === 0 && (
-            <p className="text-xs text-slate-500 dark:text-slate-400 text-center py-2">Nenhum item encontrado</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400 text-center py-2">
+              Nenhum item encontrado
+            </p>
           )}
         </div>
       )}

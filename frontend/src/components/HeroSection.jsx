@@ -1,6 +1,14 @@
-import { Target, Calendar, Wallet, TrendingUp, List, ArrowUpRight, ArrowDownRight } from "lucide-react";
-import { KpiCard } from "./KpiCard";
-import { formatCurrency } from "../utils/formatters";
+import {
+  Target,
+  Calendar,
+  Wallet,
+  TrendingUp,
+  List,
+  ArrowUpRight,
+  ArrowDownRight,
+} from 'lucide-react';
+import { KpiCard } from './KpiCard';
+import { formatCurrency } from '../utils/formatters';
 
 /**
  * HeroSection Component
@@ -85,37 +93,31 @@ export function HeroSection({ summary, capData, invoiceYear, invoiceMonth }) {
               <h2 className="font-semibold text-slate-900 dark:text-slate-100">Orçamento do mês</h2>
             </div>
             <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
-              <span className="font-medium">
-                {formatCurrency(spent)}
-              </span>{" "}
+              <span className="font-medium">{formatCurrency(spent)}</span>{' '}
               {capData && (
                 <>
-                  de {formatCurrency(budget)} • faltam{" "}
-                  <span className="font-medium">
-                    {formatCurrency(remaining)}
-                  </span>
+                  de {formatCurrency(budget)} • faltam{' '}
+                  <span className="font-medium">{formatCurrency(remaining)}</span>
                 </>
               )}
             </p>
             {capData && capData.holidays > 0 && (
               <p className="text-xs text-slate-500 dark:text-slate-500 mt-1">
-                Dias úteis trabalhados: {capData.businessDaysWorked} ({capData.totalBusinessDays} disponíveis - {capData.holidays} {capData.holidays === 1 ? 'feriado' : 'feriados'})
+                Dias úteis trabalhados: {capData.businessDaysWorked} ({capData.totalBusinessDays}{' '}
+                disponíveis - {capData.holidays} {capData.holidays === 1 ? 'feriado' : 'feriados'})
               </p>
             )}
           </div>
           <div className="text-right text-sm text-slate-600 dark:text-slate-400">
             <div className="flex items-center justify-end gap-1">
               <Calendar className="h-4 w-4" />
-              {isPastMonth && "Mês concluído!"}
+              {isPastMonth && 'Mês concluído!'}
               {isCurrentMonth && `Dia ${today} de ${daysInMonth}`}
-              {isFutureMonth && "Mês ainda não iniciado!"}
+              {isFutureMonth && 'Mês ainda não iniciado!'}
             </div>
             {isCurrentMonth && (
               <div className="mt-1">
-                Projeção mês:{" "}
-                <span className="font-medium">
-                  {formatCurrency(projected)}
-                </span>
+                Projeção mês: <span className="font-medium">{formatCurrency(projected)}</span>
               </div>
             )}
           </div>
@@ -142,7 +144,7 @@ export function HeroSection({ summary, capData, invoiceYear, invoiceMonth }) {
             {isCurrentMonth && (
               <div className="mt-2 flex items-center justify-between text-xs text-slate-600 dark:text-slate-400">
                 <span>
-                  Ritmo:{" "}
+                  Ritmo:{' '}
                   {overPace ? (
                     <span className="inline-flex items-center gap-1 font-medium text-red-700 dark:text-red-400">
                       <ArrowUpRight className="h-3 w-3" /> acima do esperado
@@ -153,10 +155,7 @@ export function HeroSection({ summary, capData, invoiceYear, invoiceMonth }) {
                     </span>
                   )}
                 </span>
-                <span>
-                  Esperado até hoje:{" "}
-                  {formatCurrency(expectedByToday)}
-                </span>
+                <span>Esperado até hoje: {formatCurrency(expectedByToday)}</span>
               </div>
             )}
           </div>
@@ -164,11 +163,7 @@ export function HeroSection({ summary, capData, invoiceYear, invoiceMonth }) {
       </div>
 
       <div className="col-span-12 lg:col-span-4 grid grid-cols-2 lg:grid-cols-1 gap-4">
-        <KpiCard
-          icon={Wallet}
-          label="Total gasto"
-          value={formatCurrency(spent)}
-        />
+        <KpiCard icon={Wallet} label="Total gasto" value={formatCurrency(spent)} />
         {isCurrentMonth && (
           <KpiCard
             icon={TrendingUp}

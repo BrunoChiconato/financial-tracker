@@ -118,7 +118,9 @@ function App() {
 
       <div className="mx-auto max-w-7xl px-6 py-6 space-y-6">
         {displayData.summary ? (
-          <div className={`transition-opacity duration-150 ${loading ? 'opacity-50' : 'opacity-100'}`}>
+          <div
+            className={`transition-opacity duration-150 ${loading ? 'opacity-50' : 'opacity-100'}`}
+          >
             <HeroSection
               summary={displayData.summary}
               capData={displayData.capData}

@@ -23,12 +23,7 @@ export function CategoryChart({ data }) {
       <div className="mt-4 space-y-2">
         {sortedData.length > 0 ? (
           sortedData.map((item) => (
-            <BarRow
-              key={item.category}
-              label={item.category}
-              value={item.amount}
-              max={maxValue}
-            />
+            <BarRow key={item.category} label={item.category} value={item.amount} max={maxValue} />
           ))
         ) : (
           <p className="text-sm text-slate-500 dark:text-slate-400 text-center py-4">
