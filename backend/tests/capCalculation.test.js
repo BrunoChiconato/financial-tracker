@@ -118,8 +118,8 @@ describe('Cap Calculation - Holidays', () => {
   });
 
   it('should apply accounting fee only from CAP_ACCOUNTING_START_MONTH/YEAR', () => {
-    const beforeAccounting = calculateMonthlyCap(2025, 11);
-    const afterAccounting = calculateMonthlyCap(2025, 12);
+    const beforeAccounting = calculateMonthlyCap(2025, 12);
+    const afterAccounting = calculateMonthlyCap(2026, 1);
 
     expect(parseFloat(beforeAccounting.accountingFee)).toBe(0);
     expect(parseFloat(afterAccounting.accountingFee)).toBeGreaterThan(0);
@@ -132,10 +132,8 @@ describe('Cap Calculation - Holidays', () => {
     try {
       const tempHolidays = JSON.parse(originalData);
       if (!tempHolidays['2025']) tempHolidays['2025'] = {};
-      tempHolidays['2025']['11'] = 999;
+      tempHolidays['2025']['10'] = 999;
       fs.writeFileSync(holidaysPath, JSON.stringify(tempHolidays, null, 2));
-
-      delete require.cache[require.resolve('../utils/capCalculation.js')];
 
       const { calculateMonthlyCap: freshCalc } = await import(
         '../utils/capCalculation.js?t=' + Date.now()
