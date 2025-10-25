@@ -5,7 +5,7 @@
  * Verifies debouncing, filter toggling, and integration with FilterGroup.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { Filters } from './Filters';
 
 describe('Filters Component', () => {
@@ -279,16 +279,12 @@ describe('Filters Component', () => {
     const searchInput = screen.getByPlaceholderText('Digite para buscar...');
     fireEvent.change(searchInput, { target: { value: 'uber' } });
 
-    // Should not call immediately
     expect(mockSetSearch).not.toHaveBeenCalled();
 
-    // Fast-forward time
     vi.advanceTimersByTime(300);
+    await vi.runAllTimersAsync();
 
-    // Should call after debounce delay
-    await waitFor(() => {
-      expect(mockSetSearch).toHaveBeenCalledWith('uber');
-    });
+    expect(mockSetSearch).toHaveBeenCalledWith('uber');
   });
 
   it('should cancel previous debounce timer on rapid typing', async () => {
@@ -313,12 +309,10 @@ describe('Filters Component', () => {
 
     fireEvent.change(searchInput, { target: { value: 'uber' } });
     vi.advanceTimersByTime(300);
+    await vi.runAllTimersAsync();
 
-    // Should only call once with final value
-    await waitFor(() => {
-      expect(mockSetSearch).toHaveBeenCalledTimes(1);
-      expect(mockSetSearch).toHaveBeenCalledWith('uber');
-    });
+    expect(mockSetSearch).toHaveBeenCalledTimes(1);
+    expect(mockSetSearch).toHaveBeenCalledWith('uber');
   });
 
   it('should update local search state immediately', () => {

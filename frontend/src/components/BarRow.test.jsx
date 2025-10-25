@@ -26,9 +26,9 @@ describe('BarRow Component', () => {
   });
 
   it('should call formatCurrency with correct value (Rule 9)', () => {
-    render(<BarRow label="Transporte" value={250.50} max={1000} />);
+    render(<BarRow label="Transporte" value={250.5} max={1000} />);
 
-    expect(formatters.formatCurrency).toHaveBeenCalledWith(250.50);
+    expect(formatters.formatCurrency).toHaveBeenCalledWith(250.5);
   });
 
   it('should calculate correct percentage width', () => {
@@ -70,9 +70,7 @@ describe('BarRow Component', () => {
   });
 
   it('should render multiple bars with different percentages', () => {
-    const { rerender, container } = render(
-      <BarRow label="Category 1" value={500} max={1000} />
-    );
+    const { rerender, container } = render(<BarRow label="Category 1" value={500} max={1000} />);
     let bar = container.querySelector('.bg-slate-700');
     expect(bar).toHaveStyle({ width: '50%' });
 

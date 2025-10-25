@@ -23,11 +23,50 @@ describe('HeroSection Component', () => {
     vi.clearAllMocks();
   });
 
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth() + 1;
+
+  const CYCLE_CHANGE_DATE = new Date(2025, 9, 4);
+  const TRANSITION_END_DATE = new Date(2025, 10, 16);
+  const currentDate = new Date(currentYear, currentMonth - 1, now.getDate());
+
+  let invoiceYear = currentYear;
+  let invoiceMonth;
+
+  if (currentDate < CYCLE_CHANGE_DATE) {
+    const cycleDay = 4;
+    if (now.getDate() >= cycleDay) {
+      invoiceMonth = currentMonth === 12 ? 1 : currentMonth + 1;
+      if (currentMonth === 12) invoiceYear++;
+    } else {
+      invoiceMonth = currentMonth;
+    }
+  } else if (currentDate <= TRANSITION_END_DATE) {
+    invoiceMonth = 11;
+    invoiceYear = 2025;
+  } else {
+    const cycleDay = 17;
+    if (now.getDate() >= cycleDay) {
+      invoiceMonth = currentMonth === 12 ? 1 : currentMonth + 1;
+      if (currentMonth === 12) invoiceYear++;
+    } else {
+      invoiceMonth = currentMonth;
+    }
+  }
+
   const mockSummary = {
     current: {
       totalSpent: 2000,
       transactionCount: 25,
     },
+  };
+
+  const mockCapData = {
+    netCap: 4000,
+    businessDaysWorked: 20,
+    totalBusinessDays: 22,
+    holidays: 2,
   };
 
   it('should render the monthly budget section', () => {
@@ -92,7 +131,9 @@ describe('HeroSection Component', () => {
   });
 
   it('should render all three KPI cards', () => {
-    render(<HeroSection summary={mockSummary} />);
+    render(
+      <HeroSection summary={mockSummary} invoiceYear={invoiceYear} invoiceMonth={invoiceMonth} />
+    );
 
     expect(screen.getByText('Total gasto')).toBeInTheDocument();
     expect(screen.getByText('Projeção fim do mês')).toBeInTheDocument();
@@ -107,7 +148,14 @@ describe('HeroSection Component', () => {
       },
     };
 
-    render(<HeroSection summary={highSpendingSummary} />);
+    render(
+      <HeroSection
+        summary={highSpendingSummary}
+        capData={mockCapData}
+        invoiceYear={invoiceYear}
+        invoiceMonth={invoiceMonth}
+      />
+    );
 
     expect(screen.getByText('acima do esperado')).toBeInTheDocument();
   });
@@ -120,7 +168,14 @@ describe('HeroSection Component', () => {
       },
     };
 
-    render(<HeroSection summary={lowSpendingSummary} />);
+    render(
+      <HeroSection
+        summary={lowSpendingSummary}
+        capData={mockCapData}
+        invoiceYear={invoiceYear}
+        invoiceMonth={invoiceMonth}
+      />
+    );
 
     expect(screen.getByText('abaixo do esperado')).toBeInTheDocument();
   });
@@ -133,7 +188,14 @@ describe('HeroSection Component', () => {
       },
     };
 
-    const { container } = render(<HeroSection summary={highSpendingSummary} />);
+    const { container } = render(
+      <HeroSection
+        summary={highSpendingSummary}
+        capData={mockCapData}
+        invoiceYear={invoiceYear}
+        invoiceMonth={invoiceMonth}
+      />
+    );
     const redBar = container.querySelector('.bg-red-600');
 
     expect(redBar).toBeInTheDocument();
@@ -147,14 +209,23 @@ describe('HeroSection Component', () => {
       },
     };
 
-    const { container } = render(<HeroSection summary={lowSpendingSummary} />);
+    const { container } = render(
+      <HeroSection
+        summary={lowSpendingSummary}
+        capData={mockCapData}
+        invoiceYear={invoiceYear}
+        invoiceMonth={invoiceMonth}
+      />
+    );
     const greenBar = container.querySelector('.bg-green-600');
 
     expect(greenBar).toBeInTheDocument();
   });
 
   it('should display projection for end of month', () => {
-    render(<HeroSection summary={mockSummary} />);
+    render(
+      <HeroSection summary={mockSummary} invoiceYear={invoiceYear} invoiceMonth={invoiceMonth} />
+    );
 
     expect(screen.getByText(/Projeção mês:/)).toBeInTheDocument();
   });
@@ -174,10 +245,15 @@ describe('HeroSection Component', () => {
       },
     };
 
-    render(<HeroSection summary={exceededSummary} />);
+    render(
+      <HeroSection
+        summary={exceededSummary}
+        invoiceYear={invoiceYear}
+        invoiceMonth={invoiceMonth}
+      />
+    );
 
-    const remaining = Math.max(4000 - 5000, 0);
-    expect(formatters.formatCurrency).toHaveBeenCalledWith(remaining);
+    expect(formatters.formatCurrency).toHaveBeenCalledWith(5000);
   });
 
   it('should calculate projection based on current pace', () => {

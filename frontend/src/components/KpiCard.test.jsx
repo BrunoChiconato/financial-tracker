@@ -28,12 +28,7 @@ describe('KpiCard Component', () => {
 
   it('should apply subtle opacity when subtle prop is true', () => {
     const { container } = render(
-      <KpiCard
-        icon={TrendingUp}
-        label="Projeção"
-        value="R$ 2.000,00"
-        subtle={true}
-      />
+      <KpiCard icon={TrendingUp} label="Projeção" value="R$ 2.000,00" subtle={true} />
     );
 
     const card = container.querySelector('.opacity-95');
@@ -42,12 +37,7 @@ describe('KpiCard Component', () => {
 
   it('should not apply subtle opacity when subtle prop is false', () => {
     const { container } = render(
-      <KpiCard
-        icon={Wallet}
-        label="Total"
-        value="R$ 1.000,00"
-        subtle={false}
-      />
+      <KpiCard icon={Wallet} label="Total" value="R$ 1.000,00" subtle={false} />
     );
 
     const card = container.querySelector('.opacity-95');
@@ -61,9 +51,7 @@ describe('KpiCard Component', () => {
   });
 
   it('should support dark mode classes', () => {
-    const { container } = render(
-      <KpiCard icon={Wallet} label="Test" value="100" />
-    );
+    const { container } = render(<KpiCard icon={Wallet} label="Test" value="100" />);
 
     const card = container.querySelector('.bg-white');
     expect(card?.className).toContain('dark:bg-slate-800');
@@ -76,9 +64,7 @@ describe('KpiCard Component', () => {
   });
 
   it('should render with correct font styling for value', () => {
-    const { container } = render(
-      <KpiCard icon={Wallet} label="Test" value="1000" />
-    );
+    render(<KpiCard icon={Wallet} label="Test" value="1000" />);
 
     const value = screen.getByText('1000');
     expect(value).toHaveClass('text-xl');
@@ -87,18 +73,10 @@ describe('KpiCard Component', () => {
   });
 
   it('should render all three main icons used in HeroSection', () => {
-    const { rerender } = render(
-      <KpiCard icon={Wallet} label="Total gasto" value="R$ 1.000,00" />
-    );
+    const { rerender } = render(<KpiCard icon={Wallet} label="Total gasto" value="R$ 1.000,00" />);
     expect(screen.getByText('Total gasto')).toBeInTheDocument();
 
-    rerender(
-      <KpiCard
-        icon={TrendingUp}
-        label="Projeção fim do mês"
-        value="R$ 2.000,00"
-      />
-    );
+    rerender(<KpiCard icon={TrendingUp} label="Projeção fim do mês" value="R$ 2.000,00" />);
     expect(screen.getByText('Projeção fim do mês')).toBeInTheDocument();
 
     rerender(<KpiCard icon={List} label="Lançamentos" value="42" />);

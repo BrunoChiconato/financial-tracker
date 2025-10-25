@@ -36,9 +36,7 @@ describe('SectionTitle Component', () => {
   });
 
   it('should render subtitle with smaller font', () => {
-    const { container } = render(
-      <SectionTitle title="Test Title" subtitle="This is a subtitle" />
-    );
+    render(<SectionTitle title="Test Title" subtitle="This is a subtitle" />);
 
     const subtitle = screen.getByText('This is a subtitle');
     expect(subtitle).toHaveClass('text-xs');

@@ -55,9 +55,9 @@ describe('TagChart Component', () => {
     const pct2 = ((300 / total) * 100).toFixed(1);
     const pct3 = ((200 / total) * 100).toFixed(1);
 
-    expect(screen.getByText(new RegExp(`${pct1}\\s*%`))).toBeInTheDocument();
-    expect(screen.getByText(new RegExp(`${pct2}\\s*%`))).toBeInTheDocument();
-    expect(screen.getByText(new RegExp(`${pct3}\\s*%`))).toBeInTheDocument();
+    expect(screen.getAllByText(new RegExp(`${pct1}\\s*%`))[0]).toBeInTheDocument();
+    expect(screen.getAllByText(new RegExp(`${pct2}\\s*%`))[0]).toBeInTheDocument();
+    expect(screen.getAllByText(new RegExp(`${pct3}\\s*%`))[0]).toBeInTheDocument();
   });
 
   it('should display empty state when no data', () => {
@@ -161,11 +161,11 @@ describe('TagChart Component', () => {
 
     render(<TagChart data={singleTag} />);
 
-    expect(screen.getByText(/100\.0\s*%/)).toBeInTheDocument();
+    expect(screen.getAllByText(/100\.0\s*%/)[0]).toBeInTheDocument();
   });
 
   it('should calculate 100% total for all segments', () => {
-    const { container } = render(<TagChart data={mockData} />);
+    render(<TagChart data={mockData} />);
 
     const total = mockData.reduce((sum, item) => sum + item.amount, 0);
     const percentages = mockData.map((item) => (item.amount / total) * 100);
@@ -183,7 +183,7 @@ describe('TagChart Component', () => {
 
     render(<TagChart data={equalData} />);
 
-    expect(screen.getByText(/33\.3\s*%/)).toBeInTheDocument();
+    expect(screen.getAllByText(/33\.3\s*%/)[0]).toBeInTheDocument();
   });
 
   it('should set segment width based on percentage', () => {

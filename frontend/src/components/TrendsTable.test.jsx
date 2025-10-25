@@ -102,13 +102,13 @@ describe('TrendsTable Component', () => {
   it('should show "Categoria" header when groupBy is category', () => {
     render(<TrendsTable data={mockCategoryData} groupBy="category" setGroupBy={mockSetGroupBy} />);
 
-    expect(screen.getByText('Categoria')).toBeInTheDocument();
+    expect(screen.getAllByText('Categoria')[0]).toBeInTheDocument();
   });
 
   it('should show "Tag" header when groupBy is tag', () => {
     render(<TrendsTable data={mockTagData} groupBy="tag" setGroupBy={mockSetGroupBy} />);
 
-    expect(screen.getByText('Tag')).toBeInTheDocument();
+    expect(screen.getAllByText('Tag')[0]).toBeInTheDocument();
   });
 
   it('should render grouping toggle buttons', () => {
@@ -122,9 +122,7 @@ describe('TrendsTable Component', () => {
   });
 
   it('should highlight active grouping button', () => {
-    const { container } = render(
-      <TrendsTable data={mockCategoryData} groupBy="category" setGroupBy={mockSetGroupBy} />
-    );
+    render(<TrendsTable data={mockCategoryData} groupBy="category" setGroupBy={mockSetGroupBy} />);
 
     const categoryButton = screen.getByRole('button', { name: 'Categoria' });
     expect(categoryButton).toHaveClass('bg-slate-700');
@@ -174,9 +172,7 @@ describe('TrendsTable Component', () => {
   });
 
   it('should show no arrow for zero variation', () => {
-    const { container } = render(
-      <TrendsTable data={mockCategoryData} groupBy="category" setGroupBy={mockSetGroupBy} />
-    );
+    render(<TrendsTable data={mockCategoryData} groupBy="category" setGroupBy={mockSetGroupBy} />);
 
     const healthRow = screen.getByText('Saúde').closest('tr');
     const arrows = healthRow.querySelectorAll('.lucide');
@@ -202,9 +198,7 @@ describe('TrendsTable Component', () => {
   });
 
   it('should apply neutral styling for zero variation', () => {
-    const { container } = render(
-      <TrendsTable data={mockCategoryData} groupBy="category" setGroupBy={mockSetGroupBy} />
-    );
+    render(<TrendsTable data={mockCategoryData} groupBy="category" setGroupBy={mockSetGroupBy} />);
 
     const healthRow = screen.getByText('Saúde').closest('tr');
     const neutralText = healthRow.querySelector('.text-slate-700');

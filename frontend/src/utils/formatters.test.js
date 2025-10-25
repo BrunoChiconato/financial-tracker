@@ -31,7 +31,7 @@ describe('formatCurrency', () => {
   });
 
   it('should handle negative numbers', () => {
-    expect(formatCurrency(-100.50)).toBe('R$ -100,50');
+    expect(formatCurrency(-100.5)).toBe('R$ -100,50');
     expect(formatCurrency(-1234.56)).toBe('R$ -1.234,56');
   });
 
