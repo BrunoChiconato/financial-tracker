@@ -33,14 +33,17 @@ export function formatCurrency(value) {
 export function calculateMoM(currentValue, previousValue) {
   if (previousValue === 0 || previousValue === null) {
     return {
-      percentage: currentValue > 0 ? 100 : 0,
+      absolute: currentValue,
+      percentage: 0,
       label: currentValue > 0 ? 'novo' : '',
     };
   }
 
-  const percentage = ((currentValue - previousValue) / previousValue) * 100;
+  const absolute = currentValue - previousValue;
+  const percentage = (absolute / previousValue) * 100;
 
   return {
+    absolute: Number(absolute.toFixed(2)),
     percentage: Number(percentage.toFixed(1)),
     label: `${percentage > 0 ? '+' : ''}${percentage.toFixed(1)}%`,
   };
