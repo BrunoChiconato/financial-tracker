@@ -6,6 +6,9 @@
  *
  * The installment logic handles the transition from old billing cycle (4th-3rd)
  * to new cycle (17th-16th) starting Oct 4, 2025.
+ *
+ * CRITICAL: All date filtering uses Brazil timezone (America/Sao_Paulo) to ensure
+ * billing cycle boundaries match the user's local time.
  */
 
 /**
@@ -101,7 +104,7 @@ export function getExpensesQuery(filters = {}) {
 
   if (filters.startDate && filters.endDate) {
     conditions.push(
-      `(expense_ts AT TIME ZONE 'UTC')::date BETWEEN $${paramCount} AND $${paramCount + 1}`
+      `(expense_ts AT TIME ZONE 'America/Sao_Paulo')::date BETWEEN $${paramCount} AND $${paramCount + 1}`
     );
     params.push(filters.startDate, filters.endDate);
     paramCount += 2;
@@ -157,7 +160,7 @@ export function getSummaryQuery(startDate, endDate, categories = [], tags = [], 
       COALESCE(SUM(amount), 0) AS total_spent,
       COUNT(*) AS transaction_count
     FROM monthly_expenses
-    WHERE (expense_ts AT TIME ZONE 'UTC')::date BETWEEN $1 AND $2
+    WHERE (expense_ts AT TIME ZONE 'America/Sao_Paulo')::date BETWEEN $1 AND $2
   `;
 
   const params = [startDate, endDate];
@@ -207,7 +210,7 @@ export function getCategoryBreakdownQuery(
       category,
       SUM(amount) AS total_amount
     FROM monthly_expenses
-    WHERE (expense_ts AT TIME ZONE 'UTC')::date BETWEEN $1 AND $2
+    WHERE (expense_ts AT TIME ZONE 'America/Sao_Paulo')::date BETWEEN $1 AND $2
   `;
 
   const params = [startDate, endDate];
@@ -253,7 +256,7 @@ export function getTagBreakdownQuery(startDate, endDate, categories = [], tags =
       tag,
       SUM(amount) AS total_amount
     FROM monthly_expenses
-    WHERE (expense_ts AT TIME ZONE 'UTC')::date BETWEEN $1 AND $2
+    WHERE (expense_ts AT TIME ZONE 'America/Sao_Paulo')::date BETWEEN $1 AND $2
   `;
 
   const params = [startDate, endDate];
@@ -312,7 +315,7 @@ export function getMoMTrendQuery(
         ${groupBy},
         SUM(amount) AS current_total
       FROM monthly_expenses
-      WHERE (expense_ts AT TIME ZONE 'UTC')::date BETWEEN $1 AND $2
+      WHERE (expense_ts AT TIME ZONE 'America/Sao_Paulo')::date BETWEEN $1 AND $2
   `;
 
   const params = [currentStart, currentEnd, previousStart, previousEnd];
@@ -346,7 +349,7 @@ export function getMoMTrendQuery(
         ${groupBy},
         SUM(amount) AS previous_total
       FROM monthly_expenses
-      WHERE (expense_ts AT TIME ZONE 'UTC')::date BETWEEN $3 AND $4
+      WHERE (expense_ts AT TIME ZONE 'America/Sao_Paulo')::date BETWEEN $3 AND $4
   `;
 
   if (categoriesParamIndex) {
