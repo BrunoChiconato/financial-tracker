@@ -50,7 +50,6 @@ services:
       TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
       ALLOWED_USER_ID: ${ALLOWED_USER_ID}
       TZ: ${TZ}
-      CYCLE_RESET_DAY: ${CYCLE_RESET_DAY:-10}
     deploy:
       resources:
         limits:

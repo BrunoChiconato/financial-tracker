@@ -16,15 +16,7 @@ FRONTEND_SVC ?= frontend
 
 REQUIRED_ENV = POSTGRES_USER POSTGRES_PASSWORD POSTGRES_DB TELEGRAM_BOT_TOKEN ALLOWED_USER_ID TZ
 
-BOT_SRC       := $(shell [ -d bot ] && find bot -type f -not -path "*/__pycache__/*" -not -name "*.pyc" || echo "")
-DASH_SRC      := $(shell [ -d dashboard ] && find dashboard -type f -not -path "*/__pycache__/*" -not -name "*.pyc" || echo "")
-COMPOSE_FILES := $(shell ls docker-compose*.yml 2>/dev/null || echo docker-compose.yml)
-
-BOT_STAMP       := .bot-build.stamp
-DASH_STAMP      := .dashboard-build.stamp
-STACK_STAMP     := .stack-build.stamp
-
-.PHONY: help env-check up stop restart logs-bot logs-backend logs-frontend logs-db logs-backup lint lint-backend lint-frontend lint-all clean backup restore clean-containers test-python test-backend test-frontend test-all ci
+.PHONY: help env-check up stop restart logs-bot logs-backend logs-frontend logs-db lint lint-backend lint-frontend lint-all clean backup restore clean-containers
 
 help: ## List available commands
 	@echo ""
@@ -68,9 +60,6 @@ logs-frontend: ## Tail logs of frontend service
 logs-db: ## Tail logs of database service
 	@$(COMPOSE) -p $(PROJECT) logs -f $(DB_SVC)
 
-logs-backup: ## View automated backup logs
-	@if [ -f logs/backup.log ]; then tail -f logs/backup.log; else echo "No backup logs yet. Logs will appear after first automated backup."; fi
-
 clean-containers: ## Remove stopped containers (preserves volumes and data)
 	@echo "⚠️  This will remove stopped containers but PRESERVE all data volumes"
 	@$(COMPOSE) -p $(PROJECT) down
@@ -80,25 +69,12 @@ lint: ## Lint Python code with Ruff
 	uv run ruff format . && uv run ruff check .
 
 lint-backend: ## Lint backend Node.js code
-	cd backend && npm run format --write && npm run format:check
+	cd backend && npm run format && npm run format:check
 
 lint-frontend: ## Lint frontend React code
-	cd frontend && npm run lint && npm run format --write && npm run format:check
+	cd frontend && npm run lint && npm run format && npm run format:check
 
 lint-all: lint lint-backend lint-frontend ## Run all linters (Python, backend, frontend)
-
-test-python: ## Run Python tests with pytest
-	uv run pytest tests/ -v --tb=short
-
-test-backend: ## Run backend Node.js tests
-	cd backend && npm test
-
-test-frontend: ## Run frontend React tests
-	cd frontend && npm test -- --run
-
-test-all: test-python test-backend test-frontend ## Run all tests (Python, backend, frontend)
-
-ci: lint-all test-all ## Run all linters and tests (for CI pipeline)
 
 clean: ## Cleanup caches and __pycache__
 	rm -rf .ruff_cache .pytest_cache

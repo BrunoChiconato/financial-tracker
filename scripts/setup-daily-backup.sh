@@ -2,7 +2,8 @@
 
 set -e
 
-PROJECT_DIR="/home/bruno/Jornada/financial-tracker"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 CRON_TIME="0 20 * * *"
 CRON_CMD="cd $PROJECT_DIR && make backup >> $PROJECT_DIR/logs/backup.log 2>&1"
 CRON_ENTRY="$CRON_TIME $CRON_CMD"
