@@ -5,7 +5,7 @@ description: >
   policies found in the project root or .claude/. Step 2) Analyze project structure
   and produce a report of unused or legacy files/folders.
 tools: Read, Grep, Glob, Bash
-model: sonnet
+model: inherit
 ---
 
 # Role
