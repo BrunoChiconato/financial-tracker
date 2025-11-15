@@ -20,7 +20,7 @@ These rules override default behavior and must be followed exactly:
 **Requirement:** When modifying `db/init/schema.sql`:
 1. Update `config/categories.json` if adding allowed values
 2. Update all query methods in `src/storage/repository.py` (Python)
-3. Update all query modules in `backend/utils/queries/` (Node.js)
+3. Update all query modules in `backend/queries/` (Node.js)
 4. Update `src/core/models.py` if adding/removing fields
 5. Run `make down && make up` to recreate database with new schema
 6. Verify changes in React dashboard
@@ -73,7 +73,7 @@ These rules override default behavior and must be followed exactly:
 **Requirement:** When adding new environment variables:
 1. Document in `.env.example` with explanation
 2. Add to "Environment Setup" section of this file
-3. Provide default value in `src/core/config.py` or `backend/config.js` when safe
+3. Provide default value in `src/core/config.py` when safe (backend uses env vars directly in `backend/index.js`)
 4. Add validation in `make env-check` target if critical
 
 **Rationale:** Easier onboarding and clearer error messages.
@@ -109,12 +109,51 @@ These rules override default behavior and must be followed exactly:
    - Business-day holidays (configured in `config/holidays.json` by CALENDAR month, starting November 2025)
    - Accounting fees starting from a specific month
    - DAS, Pro Labore, and INSS percentages
-   - First discount (percentage) and second discount (fixed amount)
+   - First discount (percentage, optional - can be 0) and second discount (fixed amount)
 5. The `/api/cap/:year/:month` endpoint provides detailed cap breakdown for dashboard display
 6. Holidays are subtracted from business days: `businessDaysWorked = totalBusinessDays - holidays`
 7. **CRITICAL:** Holidays in `config/holidays.json` use CALENDAR month (where work happens), NOT invoice month
 
 **Rationale:** Budget caps are business-specific calculations that must remain configurable and auditable.
+
+---
+
+## Recent Changes (October 2025)
+
+### Cap Calculation Simplification
+**Date:** October 26, 2025
+**Change:** Removed the 10% first discount from monthly budget cap calculation.
+
+**What changed:**
+- `.env`: Set `CAP_FIRST_DISCOUNT_PERCENT=0` (previously 0.10)
+- `.env.example`: Updated default to 0 with clarification that it can be disabled
+- Documentation: Updated formula from "Net Cap = Net After Deductions - First Discount - Second Discount" to "Net Cap = Net After Deductions - Second Discount"
+
+**Impact:**
+- Monthly budget cap increased by ~10% of net revenue
+- R$1000 fixed discount (second discount) still applies
+- All cap calculation tests passing (88/88)
+
+### Brazil Timezone Implementation (CRITICAL)
+**Date:** October 26, 2025
+**Change:** All billing cycle date filtering now uses Brazil timezone instead of UTC.
+
+**What changed:**
+- `backend/queries/installments.js`: All 6 SQL query functions now use `(expense_ts AT TIME ZONE 'America/Sao_Paulo')::date`
+- `frontend/`: Date display uses browser local timezone (Brazil time for Brazil-based users)
+- Tests: Updated to use noon UTC timestamps to avoid date conversion issues
+- Documentation: Added comprehensive timezone handling section
+
+**Why this matters:**
+- **Before**: An expense at 21:00 Brazil time would be counted as the next day (due to UTC conversion)
+- **After**: All expenses correctly assigned to billing months based on Brazil local time
+- **Example**: Oct 3, 2025 21:56 Brazil time is correctly excluded from Nov 2025 cycle (starts Oct 4 Brazil time)
+
+**Impact:**
+- Billing cycle boundaries now respect Brazil local time (midnight to midnight)
+- No more confusion about date boundaries
+- Oct 3 late-night expenses correctly belong to Oct invoice month, not Nov
+- All 88 backend tests passing after timezone adjustments
 
 ---
 
@@ -132,8 +171,9 @@ These rules override default behavior and must be followed exactly:
 - Add test data via Telegram bot (`/help` for format)
 - Explore dashboards and filters
 - Check logs: `make logs-bot`, `make logs-backend`
-- Run tests: `pytest tests/ -v`
+- Run tests: `make test-all` (runs all 434 tests)
 - Review codebase starting with `src/core/` (shared logic)
+- Explore test suites: Python, Backend, Frontend (all with 100% pass rate)
 
 **Recommended Learning Path:**
 1. Read "Project Overview" and "Key Concepts" sections
@@ -146,13 +186,29 @@ These rules override default behavior and must be followed exactly:
 
 ## Project Overview
 
-A full-stack personal expense tracker with dual dashboard options:
-- **Telegram Bot** (`bot_service`): Receives expenses via messages, validates input, stores in database
+A full-stack personal expense tracker with multiple interface options:
+- **Telegram Bot** (`src/bot_service/`): Receives expenses via messages, validates input, stores in database
 - **PostgreSQL Database** (`db`): Stores expense records with installment support and billing cycle transition logic
 - **React Dashboard** (`frontend/`): Modern UI with enhanced UX, color-coded visualizations, and smooth interactions (recommended)
 - **Express API** (`backend/`): RESTful Node.js backend serving the React dashboard
+- **Streamlit Dashboard** (`src/dashboard_service/`): Legacy Python-based UI with basic visualizations (optional, not in docker-compose)
 
 All services share a single PostgreSQL database.
+
+**Dashboard Comparison:**
+- **React Dashboard** (Recommended):
+  - Port: 5173 (Vite dev server) or 80 (production nginx)
+  - Modern responsive design with dark mode
+  - Real-time updates and smooth transitions
+  - Advanced filtering and search capabilities
+  - Included in docker-compose.yml
+- **Streamlit Dashboard** (Legacy):
+  - Port: 8501
+  - Simple Python-based UI
+  - Basic charts and tables
+  - NOT included in docker-compose.yml (must run manually)
+  - Location: `src/dashboard_service/streamlit_app.py`
+  - Run with: `cd src/dashboard_service && streamlit run streamlit_app.py`
 
 **Technology Stack:**
 - **Backend**: Python 3.13 (bot), Node.js 20 (Express API)
@@ -188,11 +244,16 @@ make env-check       # Validate required environment variables
 ### Code Quality & Testing
 ```bash
 make lint            # Format and lint Python code with Ruff
-make clean           # Remove caches and __pycache__ directories
-pytest tests/        # Run Python test suite
+make lint-backend    # Lint backend Node.js code with Prettier
+make lint-frontend   # Lint frontend React code with ESLint and Prettier
+make lint-all        # Run all linters (Python, backend, frontend)
+make clean           # Remove caches (Python, Node.js, React, test coverage)
+make test-python     # Run Python test suite (126 tests)
+make test-backend    # Run backend Node.js tests (88 tests)
+make test-frontend   # Run frontend React tests (220 tests)
+make test-all        # Run all tests (434 tests total)
+make ci              # Run all linters and tests (for CI pipeline)
 pytest tests/test_billing_cycle.py -v  # Run specific test file
-cd backend && npm test                 # Run Node.js tests
-cd frontend && npm test                # Run React tests
 ```
 
 ### Local Development (Without Docker)
@@ -204,6 +265,51 @@ cd frontend && npm run dev              # Frontend on :5173
 
 ---
 
+## Agent System
+
+The project includes specialized AI agents in `.claude/agents/` for automated tasks:
+
+### Available Agents
+
+**test-doctor** - Test remediation specialist
+- **Purpose**: Automatically diagnose and fix failing tests across all suites (Python, Backend, Frontend)
+- **When to use**: When you have failing tests and need comprehensive analysis and fixes
+- **Capabilities**: Analyzes test output, identifies root causes, applies fixes, verifies solutions
+- **Usage**: Mentioned in troubleshooting section (line 755, 897)
+
+**repo-auditor** - Repository documentation auditor
+- **Purpose**: Analyzes codebase and compares against documentation to find gaps and inconsistencies
+- **When to use**: Periodic documentation audits or before major releases
+- **Capabilities**: Scans all code, identifies undocumented features, finds outdated references
+- **Output**: Structured report with priorities (critical, medium, low)
+
+**repo-remediator** - Repository issue remediation
+- **Purpose**: Automatically fixes code issues, applies best practices, and resolves technical debt
+- **When to use**: After audits identify issues that need fixing
+- **Capabilities**: Multi-file edits, refactoring, dependency updates
+- **Usage**: Follow-up action after repo-auditor findings
+
+**git-conventional-committer** - Commit message generator
+- **Purpose**: Creates conventional commit messages following project standards
+- **When to use**: When committing changes that need descriptive, standardized messages
+- **Capabilities**: Analyzes git diff, generates semantic commit messages, follows conventions
+- **Format**: Follows Angular/Conventional Commits specification
+
+### How to Invoke Agents
+
+Agents are invoked through Claude Code's Task tool system. They run autonomously and return results when complete.
+
+**Note**: Agents see the full conversation history and can reference previous context. They have access to all file operations (Read, Edit, Write, Glob, Grep, Bash) but work independently.
+
+### Agent Configuration
+
+Agent settings are configured in `.claude/settings.json` which defines:
+- Agent timeout limits
+- Tool permissions
+- Model preferences (haiku for quick tasks, sonnet for complex analysis)
+
+---
+
 ## Architecture & Data Flow
 
 ### Core Module (`src/core/`)
@@ -212,7 +318,8 @@ Shared business logic used by both bot and dashboard services.
 - **`models.py`**: `Expense` dataclass - the central data contract for all expense records
 - **`parser.py`**: Text parsing and validation
   - `parse_message()`: Parses Telegram messages into `Expense` objects
-  - `br_to_decimal()`: Handles Brazilian currency format (1.234,56)
+  - `br_to_decimal()`: Handles Brazilian currency format (1.234,56), supports negative values
+  - Validates negative amounts cannot have multiple installments (rejects if `amount < 0 and installments > 1`)
   - `titleize_pt()`: Title-case with Portuguese grammar rules
   - Canonical value functions: `canon_method()`, `canon_tag()`, `canon_category()`
 - **`config.py`**: Environment variables and configuration
@@ -250,9 +357,21 @@ Shared business logic used by both bot and dashboard services.
 - **`index.js`**: Express server and API endpoint definitions
 - **`db.js`**: PostgreSQL connection pool management
 - **`queries/installments.js`**: Complex SQL queries with recursive CTEs for installment distribution
+  - **CRITICAL**: Uses `(expense_ts AT TIME ZONE 'America/Sao_Paulo')::date` for Brazil timezone date filtering
+  - All billing cycle boundaries respect Brazil local time, not UTC
 - **`utils/billingCycle.js`**: Billing cycle calculations (matches Python logic)
 - **`utils/capCalculation.js`**: Monthly budget cap calculation logic
 - **`utils/formatters.js`**: Currency and number formatting
+- **`utils/logger.js`**: Winston-based logging system
+  - Configurable log levels (info, warn, error, debug)
+  - Structured logging with timestamps
+  - Console output for development, file output for production
+  - Request/response logging for API debugging
+- **`middleware/validation.js`**: Request validation middleware
+  - Date format validation (YYYY-MM-DD)
+  - Required parameter checking
+  - Array parameter handling (categories[], tags[], methods[])
+  - Descriptive error responses for invalid requests
 
 **API Endpoints:**
 - `GET /api/health` - Database connectivity check
@@ -273,16 +392,20 @@ Shared business logic used by both bot and dashboard services.
 - **`context/DarkModeContext.jsx`**: Dark mode state with localStorage persistence
 
 **Key Components:**
-- `HeroSection.jsx`: Monthly budget card + 3 KPI cards
+- `HeroSection.jsx`: Monthly budget card + 3 KPI cards with MoM trends
 - `Filters.jsx`: Collapsible filter sidebar with debounced search
-- `CategoryChart.jsx`, `TagChart.jsx`: Visualizations
-- `TrendsTable.jsx`: MoM comparison with arrow indicators
-- `TransactionsTable.jsx`: Sortable transaction table
-- `Chip.jsx`, `SectionTitle.jsx`, `KpiCard.jsx`: Atomic components
+- `FilterGroup.jsx`: Reusable filter group component for checkboxes (used by Filters)
+- `CategoryChart.jsx`, `TagChart.jsx`: Bar chart visualizations
+- `BarRow.jsx`: Individual bar chart row component (used by chart components)
+- `TrendsTable.jsx`: MoM comparison table with arrow indicators
+- `TransactionsTable.jsx`: Sortable and filterable transaction table
+- `DarkModeToggle.jsx`: Theme switcher component with localStorage persistence
+- `Chip.jsx`, `SectionTitle.jsx`, `KpiCard.jsx`: Atomic UI components
 
 ### Database (`db/init/schema.sql`)
 Single table: `public.expenses`
 - Fields: `id`, `expense_ts`, `amount`, `description`, `method`, `tag`, `category`, `installments`, `parsed`
+- `amount` field: NUMERIC(12,2) supporting both positive and negative values (for refunds/chargebacks)
 - Constraints enforce valid payment methods, tags, and categories
 - Indexes on: `expense_ts`, `method`, `tag`, `category`
 - Installments stored as integer, prorated via SQL during queries
@@ -293,7 +416,7 @@ Single table: `public.expenses`
 1. User sends message to Telegram bot
 2. `handlers.py:on_text()` → `parser.py:parse_message()`
 3. Parser validates and canonicalizes fields
-4. `ExpenseRepository.add_expense()` inserts into PostgreSQL
+4. `ExpenseRepository.add_expense()` inserts into PostgreSQL (timestamp stored with Brazil timezone offset)
 5. Bot responds with confirmation
 
 **Output Path (Database → Frontend):**
@@ -301,38 +424,82 @@ Single table: `public.expenses`
 2. Hook calls `apiService` functions
 3. Backend Express API receives request
 4. `queries/installments.js` generates SQL with recursive CTEs
-5. CTEs expand installments across billing cycles
-6. Backend returns filtered/aggregated data
-7. Frontend renders charts and tables
+5. **SQL filters use Brazil timezone**: `(expense_ts AT TIME ZONE 'America/Sao_Paulo')::date`
+6. CTEs expand installments across billing cycles
+7. Backend returns filtered/aggregated data
+8. Frontend renders charts and tables in user's local timezone
+
+---
+
+## Timezone Handling (CRITICAL)
+
+The system uses **Brazil timezone (America/Sao_Paulo, UTC-3)** for all billing cycle boundaries and date filtering. This is essential because expenses are tracked and input in Brazil local time.
+
+### Implementation Details
+
+**Database:**
+- PostgreSQL timezone set to `America/Sao_Paulo`
+- Timestamps stored with timezone offset (e.g., `2025-10-03 21:56:27-03`)
+- All date comparisons use Brazil timezone conversion
+
+**Backend (`backend/queries/installments.js`):**
+- All SQL queries use: `(expense_ts AT TIME ZONE 'America/Sao_Paulo')::date`
+- Date boundaries calculated in Brazil time, not UTC
+- Example: Nov 2025 cycle = Oct 4 00:00 to Nov 16 23:59 **Brazil time**
+
+**Frontend:**
+- Displays dates in user's browser local timezone (Brazil time for Brazil-based users)
+- Date pickers and filters send dates as YYYY-MM-DD strings
+- Backend interprets these as Brazil timezone dates
+
+**Critical Example:**
+- Expense at `2025-10-03 21:56:27-03` (Oct 3, 21:56 Brazil time)
+- UTC equivalent: `2025-10-04 00:56:27Z` (Oct 4, 00:56 UTC)
+- **Billing cycle filter**: Uses Brazil date (Oct 3) → Excluded from Nov 2025 cycle ✓
+- **Dashboard display**: Shows Oct 3, 21:56 (local time) ✓
+
+### Why This Matters
+
+Without Brazil timezone filtering, date boundaries would be off by 3 hours:
+- ❌ Expense at 21:00 Brazil time would count as next day (midnight UTC)
+- ❌ Billing cycles would start/end at 21:00 local time instead of midnight
+- ❌ Month-end expenses would be incorrectly assigned to next month
+
+With Brazil timezone filtering:
+- ✅ All boundaries respect Brazil local time (midnight to midnight)
+- ✅ Expenses assigned to correct billing month based on when they occurred locally
+- ✅ No confusion about which day an expense belongs to
 
 ---
 
 ## Key Concepts
 
 ### Billing Cycle Logic
-The system implements a **transitional billing cycle** that changed on October 4, 2025:
+The system implements a **transitional billing cycle** that changed on October 4, 2025. **All dates and boundaries use Brazil timezone (America/Sao_Paulo).**
 
 #### Old Logic (Before October 4, 2025)
-- Cycle runs from the **4th to 3rd** of the next month
-- Example: Sept 4 - Oct 3, 2025 (invoice month: October)
+- Cycle runs from the **4th to 3rd** of the next month (Brazil time)
+- Example: Sept 4 00:00 - Oct 3 23:59, 2025 Brazil time (invoice month: October)
 - Last old cycle: Sept 4 - Oct 3, 2025
 
 #### Transition Cycle (October 4 - November 16, 2025)
 - **44-day special cycle** bridging old and new schedules
-- Oct 4 - Nov 16, 2025 (invoice month: November)
+- Oct 4 00:00 - Nov 16 23:59, 2025 Brazil time (invoice month: November)
 - Handles the shift from day 4 to day 17
 
 #### New Logic (From November 17, 2025 onwards)
-- Cycle runs from the **17th to 16th** of the next month
+- Cycle runs from the **17th to 16th** of the next month (Brazil time)
 - Examples:
-  - Nov 17 - Dec 16, 2025 (invoice month: December)
-  - Dec 17 - Jan 16, 2026 (invoice month: January)
+  - Nov 17 00:00 - Dec 16 23:59, 2025 Brazil time (invoice month: December)
+  - Dec 17 00:00 - Jan 16 23:59, 2026 Brazil time (invoice month: January)
 
 #### Implementation Details
+- **CRITICAL**: All cycle boundaries use Brazil timezone, not UTC
 - `get_cycle_reset_day_for_date()`: Returns 4 for dates before Oct 4, 2025; 17 after
 - `get_cycle_start()`: Calculates cycle start with transition handling
 - `get_current_and_previous_cycle_dates()`: Returns current and previous cycles, handling cross-transition scenarios
 - `getPreviousPeriod()` (backend): Uses `billingCycleRange()` to correctly calculate previous invoice month dates
+- Backend SQL filters: `(expense_ts AT TIME ZONE 'America/Sao_Paulo')::date`
 - Dashboard filters by "invoice month" (the month when the cycle ends)
 - All historical data before Oct 4, 2025 uses old logic - **no retroactive changes**
 
@@ -349,6 +516,15 @@ Amount - Description - Method - Tag - Category [- Installments]
 ```
 Example: `35,50 - Uber - Cartão de Crédito - Gastos Pessoais - Transporte`
 
+**Negative Values (Refunds/Chargebacks):**
+The system supports negative amounts for registering refunds, chargebacks, or credits:
+- Format: `-150,50 - Estorno Uber - Pix - Gastos Pessoais - Transporte`
+- Negative values reduce the total spent (net calculation)
+- **CRITICAL**: Negative values CANNOT have multiple installments (only 1x or no installments)
+- Parser validation rejects negative amounts with `installments > 1`
+- Use cases: Reimbursements, chargebacks, returned items, credits received
+- Display: Mixed with regular expenses, reducing totals in all metrics
+
 ### Configuration Files
 
 **`config/categories.json`** - Defines allowed values for:
@@ -360,13 +536,18 @@ Modify this file to add/change allowed values. Database constraints must be upda
 
 **`config/holidays.json`** - Stores business-day holidays per calendar month:
 - Format: `{ "2025": { "11": 2, "12": 3 }, "2026": { "1": 1 } }`
-- Keys are calendar year and calendar month (1-12) where work happens
+- Keys are calendar year and calendar month (1-12) where business days are counted
 - Values are the number of non-working days (holidays) in that calendar month
-- **Important:** Use calendar month (typically invoice month - 1), NOT invoice month
-- Example: For December 2025 invoice month (Nov 17 - Dec 16), work happens in November, so use `"11"`
+- **CRITICAL - Calendar Month Logic:** Holidays are stored by CALENDAR MONTH, which is `invoice_month - 1`
+- **Examples to clarify:**
+  - December 2025 invoice month (Nov 17 - Dec 16 billing cycle) → Business days counted in **November** → Use `"2025": { "11": <holidays> }`
+  - January 2026 invoice month (Dec 17 - Jan 16 billing cycle) → Business days counted in **December** → Use `"2025": { "12": <holidays> }`
+  - November 2025 invoice month (Oct 4 - Nov 16 transition cycle) → Business days counted in **October** → Use `"2025": { "10": <holidays> }`
+- **Why calendar month?** Cap calculation counts business days in the calendar month where work actually occurs (typically the month before invoice)
 - Includes Brazilian national/bank holidays and personal non-working days
 - Starting from November 2025, holidays are subtracted from business days in cap calculation
 - Missing entries default to 0 holidays
+- **Backend implementation**: `backend/utils/capCalculation.js` converts `invoiceMonth` to `calendarMonth` via `invoiceMonth - 1` before looking up holidays
 
 ### Monthly Budget Cap Calculation
 The system calculates a monthly spending cap based on business income and deductions:
@@ -377,7 +558,7 @@ The system calculates a monthly spending cap based on business income and deduct
 3. Gross Income = Hourly Rate × Daily Hours × Business Days Worked
 4. Total Deductions = Accounting Fee + DAS + Pro Labore + INSS
 5. Net After Deductions = Gross Income - Total Deductions
-6. Net Cap = Net After Deductions - First Discount - Second Discount
+6. Net Cap = Net After Deductions - Second Discount (First Discount currently set to 0)
 
 **Special Considerations:**
 - Holidays are configured in `config/holidays.json` starting from November 2025
@@ -410,7 +591,7 @@ Required variables in `.env`:
 - `CAP_DAS_PERCENT`: DAS tax percentage (as decimal, e.g., 0.06 for 6%)
 - `CAP_PRO_LABORE_PERCENT`: Pro labore percentage
 - `CAP_INSS_PERCENT`: INSS tax percentage
-- `CAP_FIRST_DISCOUNT_PERCENT`: First discount percentage
+- `CAP_FIRST_DISCOUNT_PERCENT`: First discount percentage (set to 0 to disable)
 - `CAP_SECOND_DISCOUNT_FIXED`: Second discount fixed amount
 - `CAP_START_MONTH`, `CAP_START_YEAR`: When budget cap tracking started
 - `CAP_OCTOBER_BUSINESS_DAYS`: Override for October 2025 business days (transition month)
@@ -425,19 +606,103 @@ Required variables in `.env`:
 
 ## Testing
 
-### Unit Tests
-The project includes comprehensive unit tests for the billing cycle logic:
-- **Location**: `tests/test_billing_cycle.py`
-- **Coverage**: 36+ tests covering old logic, transition period, new logic, and edge cases
-- **Run tests**: `python -m pytest tests/test_billing_cycle.py -v`
-- **Test configuration**: `tests/conftest.py` sets up test environment variables
-- **Dependencies**: pytest (install with `uv pip install pytest`)
+### Comprehensive Test Suite
+The project maintains a complete test suite with **100% pass rate**:
+
+**Test Coverage by Suite:**
+- **Python (pytest)**: 126 tests
+  - Billing cycle logic (36 tests): old/transition/new cycles, edge cases
+  - Message parsing and validation (43 tests): Brazilian currency format, canonicalization
+  - Authorization logic (10 tests)
+  - Utility functions (26 tests): BRL formatting, Markdown escaping
+  - Invoice month calculations (11 tests)
+
+- **Backend (Jest/Node.js)**: 88 tests
+  - API endpoints (expenses, summary, trends, filters)
+  - Installment expansion with recursive CTEs
+  - MoM calculations across billing cycles
+  - Filter application and date range handling
+  - Budget cap calculations with holidays
+
+- **Frontend (Vitest/React)**: 220 tests
+  - Component rendering and interactions
+  - Dark mode support
+  - Debounced search functionality
+  - Chart and table components
+  - Utility functions (formatters)
+
+**Total: 434 tests, all passing**
+
+### Running Tests
+```bash
+make test-all           # Run all 434 tests (Python + Backend + Frontend)
+make test-python        # Run Python tests only (126 tests)
+make test-backend       # Run backend tests only (88 tests, requires PostgreSQL)
+make test-frontend      # Run frontend tests only (220 tests)
+make ci                 # Run linters + all tests (CI pipeline)
+```
+
+**Individual Test Suites:**
+```bash
+pytest tests/test_billing_cycle.py -v   # Run specific Python test file
+cd backend && npm test                   # Run backend tests directly
+cd frontend && npm test                  # Run frontend tests directly
+```
+
+### Critical Test Notes
+- **Backend tests require PostgreSQL**: Run `make up` first to start database
+- **Timezone handling**: Tests use noon UTC timestamps (e.g., `2025-09-15T12:00:00Z`) to ensure dates remain in the same calendar day when converted to Brazil timezone (UTC-3)
+- **Billing cycle transitions**: Tests cover all three cycle periods (old/transition/new)
+- **Test isolation**: Each test suite clears database and uses fresh test data
+- **Date creation pattern**: Always use explicit times like `new Date('2025-09-15T12:00:00Z')` instead of `new Date('2025-09-15')` to avoid timezone conversion issues
 
 ### Service Testing
 - **Bot**: Send test message to Telegram bot
 - **React Dashboard**: Access http://localhost:5173
 - **Database**: Use pgAdmin at http://localhost:5050 or connect via psql
 - **Health check**: Send `/health` command to bot or `curl http://localhost:3001/api/health`
+
+---
+
+## Continuous Integration (CI/CD)
+
+The project uses GitHub Actions for automated testing and quality checks.
+
+### CI Workflows
+
+**Primary CI Workflow** (`.github/workflows/ci.yml`)
+- **Triggers**: Push to `main`, pull requests, manual dispatch
+- **Jobs** (6 parallel jobs):
+  1. **python-tests**: Runs pytest on Python test suite (126 tests)
+  2. **python-lint**: Runs Ruff formatter and linter on Python code
+  3. **backend-tests**: Runs Jest on backend API tests (88 tests, requires PostgreSQL service)
+  4. **backend-lint**: Runs Prettier on backend Node.js code
+  5. **frontend-tests**: Runs Vitest on React component tests (220 tests)
+  6. **frontend-lint**: Runs ESLint and Prettier on frontend code
+- **Services**: PostgreSQL 16 container for backend tests
+- **Node Version**: 20.x
+- **Python Version**: 3.13
+
+**Lint-Only Workflow** (`.github/workflows/lint.yml`)
+- **Triggers**: Push to any branch
+- **Jobs**: Runs all linters in parallel (Python, Backend, Frontend)
+- **Purpose**: Fast feedback on code style before CI runs
+
+### Running CI Locally
+
+```bash
+make ci                 # Runs all linters and tests (same as CI)
+make lint-all           # Run all linters only
+make test-all           # Run all tests only
+```
+
+### CI Badge Status
+
+Check CI status on GitHub repository main page. All checks must pass before merging pull requests.
+
+### Dependency Audit
+
+The CI workflow includes `npm audit` for both backend and frontend to check for security vulnerabilities in dependencies.
 
 ---
 
@@ -602,13 +867,44 @@ Common HTTP status codes: `200` (Success), `400` (Bad request), `500` (Internal 
 
 ### Adding or modifying holidays
 1. Edit `config/holidays.json` with **calendar months** and holiday counts
-   - **CRITICAL**: Use calendar month (where work happens), NOT invoice month
-   - Example: For December 2025 invoice month (Nov 17 - Dec 16), work is in November → use `"2025": { "11": 1 }`
+   - **CRITICAL**: Use `calendar_month = invoice_month - 1` (the month where business days are worked)
+   - **Example 1**: December 2025 invoice (Nov 17 - Dec 16 billing cycle):
+     - Business days counted in **November 2025**
+     - Configuration: `"2025": { "11": 1 }` (November is month 11)
+   - **Example 2**: January 2026 invoice (Dec 17 - Jan 16 billing cycle):
+     - Business days counted in **December 2025**
+     - Configuration: `"2025": { "12": 2 }` (December is month 12)
+   - **Verification formula**: `calendar_month = (invoice_month === 1 ? 12 : invoice_month - 1)`
 2. Rebuild containers to apply changes: `make rebuild`
 3. Verify in dashboard: Holiday breakdown displays when holidays > 0
    - UI shows: "Dias úteis trabalhados: 19 (20 disponíveis - 1 feriado)"
 4. Test API response: `curl http://localhost:3001/api/cap/2025/12 | jq`
    - Verify `holidays`, `totalBusinessDays`, and `businessDaysWorked` fields
+   - For December invoice (month 12): should show holidays from November (month 11)
+
+### Running the full test suite
+1. Ensure Docker services are running: `make up`
+2. Run all tests: `make test-all` (runs all 434 tests)
+3. Run specific suite if needed:
+   - `make test-python` - Python tests only (no database required)
+   - `make test-backend` - Backend API tests (requires database)
+   - `make test-frontend` - React component tests (no database required)
+4. Review test output for any failures
+5. For comprehensive test remediation, use the test-doctor agent
+
+### Fixing failing tests
+1. Identify which test suite is failing: `make test-all`
+2. Run the specific failing suite with verbose output:
+   - Python: `pytest tests/test_file.py -v -s`
+   - Backend: `cd backend && npm test -- --verbose`
+   - Frontend: `cd frontend && npm test -- --reporter=verbose`
+3. Analyze the error message:
+   - Assertion failures: Check expected vs actual values
+   - Timeout errors: Check async operations or timer mocking
+   - Database errors: Ensure PostgreSQL is running (`make up`)
+4. Fix the issue in test code or implementation
+5. Re-run the specific test to verify fix
+6. Run full suite to ensure no regressions: `make test-all`
 
 ---
 
@@ -619,8 +915,10 @@ Common HTTP status codes: `200` (Success), `400` (Bad request), `500` (Internal 
 **Pre-Deployment:**
 1. Update `.env` with production values (strong passwords, production bot token, correct user ID, timezone)
 2. Review `config/categories.json` for completeness
-3. Run test suite: `pytest tests/ -v`
-4. Test locally: `make down && make up`
+3. Run full test suite: `make test-all` (ensure all 434 tests pass)
+4. Run linters: `make lint-all` (Python, backend, frontend)
+5. Test locally: `make down && make up`
+6. Verify all services start correctly and health checks pass
 
 **Deployment:**
 1. Clone repository to production server
@@ -643,7 +941,27 @@ docker compose exec db pg_dump -U postgres financial_tracker > backup_$(date +%Y
 gzip backup_$(date +%Y%m%d).sql
 ```
 
-**Automated Backups (cron):**
+**Automated Backups Setup:**
+The project includes helper scripts in `scripts/` directory:
+
+1. **`scripts/backup.sh`** - Manual backup script
+   - Creates timestamped backup in `backups/` directory
+   - Automatically compresses with gzip
+   - Usage: `./scripts/backup.sh`
+
+2. **`scripts/setup-daily-backup.sh`** - Automated backup configuration
+   - Sets up daily cron job at 2 AM
+   - Creates `backups/` directory if missing
+   - Configures automatic cleanup of old backups (keeps last 30 days)
+   - Usage: `./scripts/setup-daily-backup.sh`
+   - **IMPORTANT**: Run this once on server setup to enable automated backups
+
+3. **`scripts/restore.sh`** - Backup restoration script
+   - Restores from specified backup file
+   - Automatically handles compressed (.gz) and uncompressed (.sql) files
+   - Usage: `./scripts/restore.sh backups/backup_20250101.sql.gz`
+
+**Manual Cron Setup (Alternative):**
 ```bash
 # Add to crontab (daily at 2 AM)
 0 2 * * * cd /path/to/financial-tracker && docker compose exec -T db pg_dump -U postgres financial_tracker | gzip > backups/backup_$(date +\%Y\%m\%d).sql.gz
@@ -657,6 +975,13 @@ sleep 5
 gunzip -c backup_20250101.sql.gz | docker compose exec -T db psql -U postgres financial_tracker
 make up
 ```
+
+**Backup Best Practices:**
+- Run automated backups daily during low-traffic hours (2-4 AM)
+- Keep at least 30 days of backups (90 days for production)
+- Store backups off-site or in separate disk/cloud storage
+- Test restoration procedure monthly to verify backup integrity
+- Document backup location and access credentials securely
 
 ### Troubleshooting
 
@@ -680,11 +1005,28 @@ make up
 4. Restart database: `docker compose restart db`
 
 **Installment Calculations Incorrect:**
-1. Review billing cycle dates in logs
-2. Check `CYCLE_CHANGE_DATE` and `CYCLE_TRANSITION_END_DATE` in `src/core/config.py`
-3. Verify installment distribution CTE in SQL queries
-4. Run billing cycle tests: `pytest tests/test_billing_cycle.py -v`
-5. Check timezone settings (`TZ` in `.env`)
+1. **Verify timezone**: All date filtering uses Brazil timezone `(expense_ts AT TIME ZONE 'America/Sao_Paulo')::date`
+2. Review billing cycle dates in logs
+3. Check `CYCLE_CHANGE_DATE` and `CYCLE_TRANSITION_END_DATE` in `src/core/config.py`
+4. Verify installment distribution CTE in SQL queries: `backend/queries/installments.js`
+5. Run billing cycle tests: `pytest tests/test_billing_cycle.py -v`
+6. Check database timezone: `docker compose exec db psql -U admin -d finance -c "SHOW timezone;"`
+7. Verify `TZ=America/Sao_Paulo` in `.env`
+
+**Date Boundary Issues (Expenses in Wrong Month):**
+1. **Root cause**: Likely timezone mismatch between Brazil time and UTC
+2. **Verify SQL filtering**: Check `backend/queries/installments.js` uses `AT TIME ZONE 'America/Sao_Paulo'`
+3. **Test specific expense**:
+   ```sql
+   SELECT id, expense_ts,
+     (expense_ts AT TIME ZONE 'America/Sao_Paulo')::date as brazil_date,
+     (expense_ts AT TIME ZONE 'UTC')::date as utc_date
+   FROM expenses WHERE id = [expense_id];
+   ```
+4. **Verify billing cycle boundaries**: Ensure they use Brazil time (00:00-23:59 local)
+5. **Frontend display**: Dates should show in user's browser timezone
+6. **Test filter**: Query with date range and verify results match expected Brazil timezone dates
+7. **Common issue**: Late-night expenses (e.g., 23:00 Brazil time) should NOT appear in next day's invoice month
 
 **Cap Calculations Incorrect:**
 1. Verify `config/holidays.json` uses **calendar months** (where work happens), NOT invoice months
@@ -701,6 +1043,23 @@ make up
    - Response should show `"businessDaysWorked"` = `"totalBusinessDays"` - `"holidays"`
 4. After config changes, rebuild containers: `make rebuild`
 5. Verify environment variables are set correctly in `.env` (11 CAP_* variables)
+
+**Test Failures:**
+1. **Check test dependencies**: Ensure PostgreSQL is running for backend tests (`make up`)
+2. **Run specific test suite**: Isolate the failing suite with `make test-python`, `make test-backend`, or `make test-frontend`
+3. **Review test output**: Look for assertion errors, timeout issues, or database connection problems
+4. **Common issues**:
+   - Backend tests fail with "ECONNREFUSED": Database not running → run `make up`
+   - Frontend debounce tests timeout: Timer mocking issue → check `vi.useFakeTimers()` in test
+   - Python tests fail on billing cycles: Check `CYCLE_CHANGE_DATE` and `CYCLE_TRANSITION_END_DATE` in `src/core/config.py`
+5. **CRITICAL - Brazil Timezone for Billing Cycles**: All date filtering uses Brazil timezone
+   - **Rationale**: User tracks and inputs expenses in Brazil local time
+   - **Implementation**: SQL queries use `(expense_ts AT TIME ZONE 'America/Sao_Paulo')::date`
+   - **Location**: `backend/queries/installments.js` (6 query functions)
+   - **Impact**: Billing cycle boundaries respect Brazil local time, not UTC
+   - **Example**: Expense at Oct 3, 2025 21:56 Brazil time → excluded from Nov 2025 cycle (starts Oct 4 Brazil time)
+   - **Frontend**: Displays dates in user's local browser timezone (Brazil time for Brazil-based users)
+6. **Use test-doctor agent**: For comprehensive test remediation, use the test-doctor agent to automatically diagnose and fix test issues
 
 ### Security Best Practices
 
@@ -719,10 +1078,17 @@ make up
    - Get your user ID: send `/start` to @userinfobot
    - Unauthorized users receive rejection message (logged for monitoring)
 
-4. **API Security (React Dashboard):**
+4. **API Security (React Dashboard - CRITICAL):**
+   - **⚠️ CRITICAL WARNING**: The React dashboard has NO authentication - anyone with network access can view all financial data
+   - **NEVER expose the dashboard to public internet without authentication**
+   - Recommended deployment options:
+     - Run on `localhost` only for personal use
+     - Use VPN/SSH tunnel for remote access
+     - Deploy behind authentication proxy (nginx with basic auth, Authelia, etc.)
+     - Implement JWT/OAuth authentication layer before production use
    - Configure CORS in `backend/index.js` to restrict origins in production
-   - Use HTTPS in production (reverse proxy like nginx)
-   - Consider adding authentication layer for multi-user scenarios
+   - Use HTTPS in production (reverse proxy like nginx or Caddy)
+   - The Telegram bot is the only component with built-in authentication (via `ALLOWED_USER_ID`)
 
 ---
 
