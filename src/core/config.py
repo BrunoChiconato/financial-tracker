@@ -89,7 +89,7 @@ ALLOWED_CATEGORIES: dict[str, str] = {
     _strip_accents_lower(cat): cat for cat in CATEGORIES_DISPLAY
 }
 
-SEP_RE: re.Pattern[str] = re.compile(r"\s*(?:-+|;|\||,(?!\d))\s*")
+SEP_RE: re.Pattern[str] = re.compile(r"\s*(?:-+(?!\d)|;|\||,(?!\d))\s*")
 
 LOWER_WORDS: set[str] = {
     "de",

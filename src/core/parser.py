@@ -143,7 +143,7 @@ def br_to_decimal(s: str) -> Decimal:
     except InvalidOperation:
         raise ValueError(f"Valor inválido: '{s}'")
 
-    return abs(value).quantize(Decimal("0.01"))
+    return value.quantize(Decimal("0.01"))
 
 
 def parse_message(text: str) -> Expense:
@@ -170,8 +170,16 @@ def parse_message(text: str) -> Expense:
             raise ValueError("Parcelas deve ser um número inteiro (ex.: 3).")
         installments = int(inst_raw.strip())
 
+    amount = br_to_decimal(val_s)
+
+    if amount < 0 and installments is not None and installments > 1:
+        raise ValueError(
+            "Valores negativos (reembolsos/estornos) não podem ser parcelados. "
+            "Use apenas 1x ou omita o número de parcelas."
+        )
+
     return Expense(
-        amount=br_to_decimal(val_s),
+        amount=amount,
         description=titleize_pt(desc_raw),
         method=canon_method(method_raw),
         tag=canon_tag(tag_raw),
