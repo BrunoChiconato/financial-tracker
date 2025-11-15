@@ -10,13 +10,11 @@
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-3.4-38B2AC?style=flat&logo=tailwind-css&logoColor=white)
 ![Express](https://img.shields.io/badge/Express-5.1-000000?style=flat&logo=express&logoColor=white)
 ![Telegram Bot](https://img.shields.io/badge/Telegram-Bot-2CA5E0?style=flat&logo=telegram&logoColor=white)
-![Streamlit](https://img.shields.io/badge/Streamlit-1.37-FF4B4B?style=flat&logo=streamlit&logoColor=white)
-![Pytest](https://img.shields.io/badge/pytest-8.0+-0A9EDC?style=flat&logo=pytest&logoColor=white)
 ![Ruff](https://img.shields.io/badge/code_style-ruff-000000?style=flat&logo=ruff&logoColor=white)
 
 > Transform scattered expense data into structured, visual insights with minimal friction—register expenses via Telegram from anywhere, view comprehensive breakdowns through a modern web dashboard, all running on local infrastructure with full data ownership.
 
-A full-stack personal expense tracker where you **log via Telegram**, **store in PostgreSQL**, and **analyze with modern web dashboards** (React or Streamlit). This project provides a frictionless expense tracking experience with granular metadata capture, enabling detailed breakdowns and visualizations across multiple dimensions throughout your billing cycle.
+A full-stack personal expense tracker where you **log via Telegram**, **store in PostgreSQL**, and **analyze with a modern React dashboard**. This project provides a frictionless expense tracking experience with granular metadata capture, enabling detailed breakdowns and visualizations across multiple dimensions throughout your billing cycle.
 
 ## Table of Contents
 
@@ -28,7 +26,6 @@ A full-stack personal expense tracker where you **log via Telegram**, **store in
 - [Prerequisites](#prerequisites)
 - [Installation](#installation)
 - [Usage](#usage)
-- [Testing](#testing)
 - [Project Structure](#project-structure)
 - [Development](#development)
 - [License](#license)
@@ -66,7 +63,7 @@ Financial Tracker captures individual transactions with structured metadata (amo
 - **Quick Commands**: `/help`, `/last`, `/undo`, `/balance`, `/health` for instant feedback
 
 ### Analytics & Visualization
-- **Dual Dashboard Options**: Choose between modern React UI or classic Streamlit interface
+- **Modern React Dashboard**: Fast Vite-powered SPA served locally
 - **Dark Mode Support**: Toggle between light and dark themes with persistent preference storage
 - **Invoice Month Filtering**: Filter by billing cycles with automatic transition handling
 - **Custom Date Ranges**: Analyze any specific time period
@@ -82,7 +79,6 @@ Financial Tracker captures individual transactions with structured metadata (amo
 - **Billing Cycle Logic**: Sophisticated transition handling (day 4 → day 17 cycles)
 - **Responsive Design**: Works seamlessly on desktop, tablet, and mobile
 - **Dockerized Environment**: One-command deployment with Docker Compose
-- **Comprehensive Testing**: 36+ tests covering billing cycle edge cases
 - **Code Quality**: Ruff (Python) and ESLint (JavaScript) with consistent formatting
 
 ## Tech Stack
@@ -105,12 +101,9 @@ Financial Tracker captures individual transactions with structured metadata (amo
 - **nodemon** 3.1.10 (dev) - Auto-restart server on file changes
 
 ### Backend (Python Services)
-- **Python** 3.13+ - Core language for bot and legacy dashboard
+- **Python** 3.13+ - Core language for the Telegram bot and shared utilities
 - **python-telegram-bot** 20.7+ - Telegram Bot API framework
 - **psycopg** 3.2.9 - PostgreSQL adapter for Python (async support)
-- **Streamlit** 1.37.1 - Interactive data application framework
-- **pandas** 2.2.3 - Data manipulation and analysis library
-- **Plotly** 5.0.0+ - Interactive visualization library
 - **python-dateutil** 2.9.0 - Powerful date/time extensions
 - **Ruff** 0.12.11+ - Fast Python linter and formatter
 
@@ -121,16 +114,14 @@ Financial Tracker captures individual transactions with structured metadata (amo
 - **Docker Compose** - Multi-container orchestration
 - **uv** 0.8.11+ - Fast Python package installer
 
-### Development & Testing
-- **pytest** 8.0.0+ - Python testing framework
+### Development Tooling
 - **ESLint** 9.36.0 - JavaScript linter
 - **PostCSS** 8.5.6 - CSS transformation tool
 - **Autoprefixer** 10.4.21 - CSS vendor prefixing
-- **npm-run-all** 4.1.5 - Parallel script execution
 
 ## Architecture
 
-The system implements a modern full-stack architecture with decoupled frontend and backend services, while maintaining backward compatibility with the original Python-based dashboard.
+The system implements a modern full-stack architecture with decoupled frontend and backend services purpose-built for local workloads.
 
 ### System Architecture Diagram
 
@@ -142,20 +133,16 @@ graph TD
     TG -->|Bot API| BotService[🤖 Bot Service<br/>Python + python-telegram-bot]
 
     Browser -->|HTTP :5173| ReactApp[⚛️ React Dashboard<br/>Vite + Tailwind CSS + Recharts]
-    Browser -->|HTTP :8501| StreamlitApp[📊 Streamlit Dashboard<br/>Legacy Python UI]
     Browser -->|HTTP :5050| PGAdmin[🔧 pgAdmin<br/>Database Admin]
 
     ReactApp -->|REST API :3001| ExpressAPI[🚀 Express Backend<br/>Node.js + pg]
 
     BotService -->|psycopg3| PostgresDB[(🗄️ PostgreSQL 16<br/>Single Source of Truth)]
     ExpressAPI -->|Connection Pool| PostgresDB
-    StreamlitApp -->|psycopg3| PostgresDB
     PGAdmin -->|Admin Queries| PostgresDB
 
     BotService -.->|Imports| CoreModule[📦 Core Module<br/>models.py, parser.py<br/>config.py, utils.py]
     BotService -.->|Imports| StorageModule[💾 Storage Module<br/>repository.py<br/>ExpenseRepository]
-    StreamlitApp -.->|Imports| CoreModule
-    StreamlitApp -.->|Imports| StorageModule
 
     ExpressAPI -.->|Uses| QueryModules[📝 Query Modules<br/>installments.js<br/>billingCycle.js]
 
@@ -175,25 +162,19 @@ graph TD
     classDef module fill:#666,stroke:#333,stroke-width:2px,color:#fff
     classDef infrastructure fill:#2496ED,stroke:#fff,stroke-width:2px,color:#fff
 
-    class BotService,StreamlitApp,CoreModule,StorageModule pythonService
+    class BotService,CoreModule,StorageModule pythonService
     class ExpressAPI,QueryModules nodeService
-    class ReactApp,ViteServer reactService
+    class ReactApp reactService
     class PostgresDB,PGAdmin database
     class Docker,Volume1,Volume2 infrastructure
 ```
 
 ### Components Overview
 
-#### Modern Full-Stack (Recommended)
 1. **Telegram Bot Service** (Python): Receives and validates expense messages, inserts into PostgreSQL
 2. **Express API** (Node.js): RESTful endpoints for data retrieval, filtering, and aggregation with recursive CTEs for installment handling
 3. **React Dashboard** (Vite): Modern UI with real-time filtering, interactive charts, MoM analysis, and responsive design
 4. **PostgreSQL Database**: Single source of truth with sophisticated billing cycle and installment logic
-
-#### Legacy Python Stack
-1. **Telegram Bot** (`bot_service`): Shared with modern stack, validates and inserts expenses
-2. **Streamlit Dashboard** (`dashboard_service`): Direct PostgreSQL queries for visualization with pandas/plotly
-3. **Shared Core Modules**: `models.py`, `parser.py`, `config.py`, `utils.py`, `repository.py`
 
 ### Technical Design Decisions
 
@@ -216,7 +197,7 @@ graph TD
 - **Rationale**: Streamlit rapid prototyping served well initially, but UX limitations emerged
 - **Benefits**: Superior UI customization, better state management, modern design patterns, enhanced interactivity
 - **Trade-off**: Additional development complexity, but justified by improved user experience
-- **Status**: Both dashboards coexist; React is the recommended interface going forward
+- **Status**: Streamlit assets were retired; the React dashboard is now the only UI
 
 ### Data Flow
 
@@ -418,7 +399,7 @@ All services should show status "Up" and the database should be "healthy".
 
 ### Step 4: Access the Application
 
-Once all services are running, access the dashboards:
+Once all services are running, access the dashboard:
 
 | Service | URL | Description |
 |---------|-----|-------------|
@@ -517,11 +498,11 @@ Interact with the bot using these commands:
 
 ### Analyzing with Dashboards
 
-The Financial Tracker provides two dashboard options for visualizing and analyzing your expense data.
+The Financial Tracker ships with a single, modern React dashboard tailored for local use.
 
 #### React Dashboard (Recommended)
 
-Access the modern dashboard at **http://localhost:5173**
+Access the dashboard at **http://localhost:5173**
 
 **Filtering Options:**
 - **Invoice Month Selector**: Choose from available billing months with automatic cycle transition support (includes future months with pending installments)
@@ -580,105 +561,6 @@ Access the modern dashboard at **http://localhost:5173**
 - **Responsive Design**: Optimized for desktop, tablet, and mobile devices
 - **Search Input Focus**: Maintains focus while typing for uninterrupted input
 
-#### Streamlit Dashboard (Legacy)
-
-Access the classic Python-based dashboard at **http://localhost:8501**
-
-**Features:**
-- Filter expenses by date range (specific dates or billing month)
-- Multi-select filters for categories and tags
-- Text search across descriptions
-- Summary metrics: total spent, daily average, transaction count
-- Interactive charts: category spending (horizontal bar), tag distribution (pie chart)
-- Month-over-Month comparison tables
-- Detailed transaction table with all fields
-
-**Note**: The Streamlit dashboard shares the same database and data as the React dashboard. It remains available for users who prefer the Python-based interface or need backward compatibility.
-
-## Testing
-
-The Financial Tracker includes comprehensive unit tests for critical business logic, particularly the billing cycle calculations that handle the transition from the old cycle (day 4) to the new cycle (day 17).
-
-### Running Tests
-
-**Run all Python tests:**
-```bash
-pytest tests/ -v
-```
-
-**Run specific test file:**
-```bash
-pytest tests/test_billing_cycle.py -v
-```
-
-**Run with coverage:**
-```bash
-pytest tests/ --cov=src --cov-report=html
-```
-
-### Test Coverage
-
-The project includes 36+ tests covering:
-
-**Billing Cycle Logic** (`tests/test_billing_cycle.py`):
-- Old cycle behavior (before October 4, 2025) - 4th to 3rd
-- Transition cycle handling (October 4 - November 16, 2025) - 44-day special cycle
-- New cycle behavior (after November 16, 2025) - 17th to 16th
-- Edge cases: month boundaries, year transitions, leap years
-- Previous period calculations across cycle transitions
-- Invoice month determination
-
-**Parser Logic** (`tests/test_parser.py`):
-- Message parsing with different separators (-, |, ;, ,)
-- Brazilian currency format handling (1.234,56)
-- Title case with Portuguese grammar rules
-- Validation of payment methods, tags, and categories
-- Installment parsing
-
-**Authentication** (`tests/test_auth.py`):
-- User ID validation
-- Unauthorized access prevention
-
-**Invoice Month Calculations** (`tests/test_invoice_month_calculation.py`):
-- Invoice month determination for different date ranges
-- Cycle transitions and edge cases
-
-### Test Configuration
-
-Tests use isolated environment configuration via `tests/conftest.py` to ensure:
-- No interference with production `.env` settings
-- Consistent test data across runs
-- Proper timezone handling (America/Sao_Paulo)
-- Mock database credentials
-
-### Service Testing
-
-In addition to unit tests, verify services are functioning correctly:
-
-**Telegram Bot:**
-1. Send a test expense message to your bot
-2. Verify confirmation message with parsed data
-3. Check `/last` to see the entry
-
-**React Dashboard:**
-1. Access http://localhost:5173
-2. Select an invoice month filter
-3. Verify data loads correctly
-4. Test category/tag filters
-5. Check MoM comparison values
-6. Toggle dark mode
-
-**Backend API:**
-1. Test health endpoint: `curl http://localhost:3001/api/health`
-2. Test metadata endpoint: `curl http://localhost:3001/api/filters/metadata`
-3. Verify JSON responses
-
-**Database:**
-1. Access pgAdmin at http://localhost:5050
-2. Connect to database with credentials from `.env`
-3. Query `public.expenses` table
-4. Verify schema and constraints
-
 ## Project Structure
 
 ```
@@ -686,7 +568,6 @@ In addition to unit tests, verify services are functioning correctly:
 ├── .env.example
 ├── Makefile
 ├── README.md
-├── package.json                    # Root package with concurrent scripts
 ├── config
 │   ├── categories.json             # Allowed values for validation
 │   └── holidays.json               # Business-day holidays per calendar month
@@ -750,10 +631,6 @@ In addition to unit tests, verify services are functioning correctly:
     │   ├── models.py               # Expense dataclass
     │   ├── parser.py               # Message parsing
     │   └── utils.py                # Billing cycle utilities
-    ├── dashboard_service/          # Streamlit (legacy)
-    │   ├── Dockerfile
-    │   ├── __init__.py
-    │   └── streamlit_app.py
     └── storage/
         ├── __init__.py
         └── repository.py           # Database operations
@@ -784,16 +661,13 @@ In addition to unit tests, verify services are functioning correctly:
 - Uses psycopg3 for async PostgreSQL connections
 - Handles installment distribution via CTEs
 
-**`config/`**: Configuration files
-- `categories.json`: Allowed values for validation (methods, tags, categories)
-- `holidays.json`: Business-day holidays per calendar month (starting Nov 2025)
+**`config/`**: Configuration files that define allowed values and working-day overrides
+- `categories.json`: Methods, tags, categories accepted by the parser and API
+- `holidays.json`: Business-day adjustments for monthly cap projections
 
-**`db/init/`**: Database initialization
+**`db/init/`**: Database initialization scripts
 - `schema.sql`: PostgreSQL schema with constraints and indexes
-
-**`tests/`**: Python unit tests
-- `test_billing_cycle.py`: 36+ tests for cycle logic
-- `conftest.py`: Test configuration and fixtures
+*** End Patch
 
 ## Development
 
@@ -892,13 +766,11 @@ If you need to change the billing cycle transition dates:
    - `get_cycle_start()`
    - `get_current_and_previous_cycle_dates()`
 
-3. Update `billing_cycle_range()` in `src/dashboard_service/streamlit_app.py`
+3. Update equivalent helpers consumed by the JavaScript stack:
+   - `backend/utils/billingCycle.js`
+   - `frontend/src/utils/billingCycle.js`
 
-4. **CRITICAL**: Update tests in `tests/test_billing_cycle.py` to cover new scenarios
-
-5. Run test suite: `pytest tests/test_billing_cycle.py -v`
-
-6. Restart services: `make restart` or `make rebuild`
+4. Restart services: `make restart` or `make rebuild`
 
 ### Adding New Bot Commands
 
