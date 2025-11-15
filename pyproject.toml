@@ -1,7 +1,7 @@
 [project]
 name = "financial-tracker"
 version = "0.1.0"
-description = "Personal Financial Tracker with Telegram, Postgres and Streamlit"
+description = "Personal Financial Tracker with Telegram, Postgres and React"
 readme = "README.md"
 requires-python = ">=3.13"
 
@@ -9,21 +9,10 @@ dependencies = [
     "psycopg[binary]==3.2.9",
     "python-dateutil==2.9.0.post0",
     "uv>=0.8.11",
-    "pandas==2.2.3",
     "ruff>=0.12.11",
-    "pytest>=8.4.2",
 ]
 
 [project.optional-dependencies]
 bot = [
     "python-telegram-bot>=20.7,<23",
-]
-dev = [
-    "ruff>=0.1.11",
-    "pytest>=8.0.0",
-]
-
-[dependency-groups]
-dev = [
-    "pytest-asyncio>=1.2.0",
 ]

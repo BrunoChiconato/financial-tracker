@@ -4,9 +4,6 @@ Database Repository Module.
 Provides the ExpenseRepository class, which serves as the single source of truth
 for all database operations related to expenses. Handles complex SQL queries with
 recursive CTEs for installment distribution across billing cycles.
-
-All database operations are performed asynchronously except for DataFrame operations
-which use synchronous connections for pandas compatibility.
 """
 
 from datetime import date
@@ -15,7 +12,6 @@ from typing import Optional, List
 import logging
 
 import psycopg
-import pandas as pd
 
 from src.core import config
 from src.core.models import Expense
@@ -30,10 +26,8 @@ class ExpenseRepository:
     This class serves as the single source of truth for database interactions,
     providing methods to create, read, update, and delete expense records.
     Implements complex installment distribution logic across billing cycles
-    using PostgreSQL recursive CTEs.
-
-    All async methods use autocommit connections for simplicity.
-    Synchronous methods are provided for pandas DataFrame operations.
+    using PostgreSQL recursive CTEs. All async methods use autocommit
+    connections for simplicity.
     """
 
     def __init__(self):
@@ -253,220 +247,3 @@ class ExpenseRepository:
                 exp.expense_ts = row[1]
                 expenses.append(exp)
         return expenses
-
-    def get_all_expenses_as_dataframe(self) -> pd.DataFrame:
-        """
-        Fetches all expenses with installment distribution as a pandas DataFrame.
-
-        Uses a recursive CTE to generate virtual rows for each installment payment.
-        Installment descriptions are appended with "(X/Y)" to indicate the installment
-        number. Timestamps are converted to the configured timezone.
-
-        The installment distribution handles the billing cycle transition from
-        old (4th-3rd) to new (17th-16th) schedules starting Oct 4, 2025.
-
-        Returns:
-            pandas DataFrame with columns: id, expense_ts, amount, description,
-            method, tag, category, installment_number, installments.
-            Returns empty DataFrame if database connection fails.
-
-        Note:
-            This method uses a synchronous connection for pandas compatibility.
-            Database errors are logged and an empty DataFrame is returned.
-        """
-        sql = """
-            WITH RECURSIVE installment_cycles AS (
-                SELECT
-                    id,
-                    expense_ts,
-                    amount / installments AS installment_amount,
-                    description,
-                    method,
-                    tag,
-                    category,
-                    installments,
-                    1 AS installment_number,
-                    expense_ts AS current_ts
-                FROM public.expenses
-                WHERE installments > 1
-
-                UNION ALL
-
-                SELECT
-                    ic.id,
-                    ic.expense_ts,
-                    ic.installment_amount,
-                    ic.description,
-                    ic.method,
-                    ic.tag,
-                    ic.category,
-                    ic.installments,
-                    ic.installment_number + 1,
-                    CASE
-                        WHEN ic.current_ts::date >= DATE '2025-10-04' AND ic.current_ts::date < DATE '2025-11-17'
-                        THEN DATE '2025-11-17' + (ic.current_ts::time)
-                        ELSE ic.current_ts + INTERVAL '1 month'
-                    END
-                FROM installment_cycles ic
-                WHERE ic.installment_number < ic.installments
-            ),
-            monthly_expenses AS (
-                SELECT
-                    id,
-                    current_ts AS expense_ts,
-                    installment_amount AS amount,
-                    description || ' (' || installment_number || '/' || installments || ')' AS description,
-                    method,
-                    tag,
-                    category,
-                    installment_number,
-                    installments
-                FROM installment_cycles
-
-                UNION ALL
-
-                SELECT
-                    id,
-                    expense_ts,
-                    amount,
-                    description,
-                    method,
-                    tag,
-                    category,
-                    1 AS installment_number,
-                    COALESCE(installments, 1) AS installments
-                FROM public.expenses
-                WHERE installments IS NULL OR installments <= 1
-            )
-            SELECT * FROM monthly_expenses ORDER BY expense_ts DESC
-        """
-        try:
-            with psycopg.connect(self.dsn) as conn:
-                df = pd.read_sql_query(sql, conn, parse_dates=["expense_ts"])
-
-            if (
-                pd.api.types.is_datetime64_any_dtype(df["expense_ts"])
-                and df["expense_ts"].dt.tz is not None
-            ):
-                df["expense_ts"] = df["expense_ts"].dt.tz_convert(config.TZ)
-
-            return df
-        except psycopg.Error as e:
-            log.error(
-                f"Database connection error in get_all_expenses_as_dataframe: {e}",
-                exc_info=True,
-            )
-            return pd.DataFrame()
-
-    def get_expenses_in_range_as_dataframe(
-        self, start_date: date, end_date: date
-    ) -> pd.DataFrame:
-        """
-        Fetches expenses within a date range with installment distribution as a DataFrame.
-
-        Uses a recursive CTE to generate virtual rows for each installment payment,
-        filtering to only include expenses whose distributed installment dates fall
-        within the specified range. Installment descriptions are appended with "(X/Y)".
-
-        The installment distribution handles the billing cycle transition from
-        old (4th-3rd) to new (17th-16th) schedules starting Oct 4, 2025.
-
-        Args:
-            start_date: Start date of the range (inclusive).
-            end_date: End date of the range (inclusive).
-
-        Returns:
-            pandas DataFrame with columns: id, expense_ts, amount, description,
-            method, tag, category, installment_number, installments.
-            Returns empty DataFrame if database connection fails or no data found.
-
-        Note:
-            This method uses a synchronous connection for pandas compatibility.
-            Database errors are logged and an empty DataFrame is returned.
-        """
-        sql = """
-            WITH RECURSIVE installment_cycles AS (
-                SELECT
-                    id,
-                    expense_ts,
-                    amount / installments AS installment_amount,
-                    description,
-                    method,
-                    tag,
-                    category,
-                    installments,
-                    1 AS installment_number,
-                    expense_ts AS current_ts
-                FROM public.expenses
-                WHERE installments > 1
-
-                UNION ALL
-
-                SELECT
-                    ic.id,
-                    ic.expense_ts,
-                    ic.installment_amount,
-                    ic.description,
-                    ic.method,
-                    ic.tag,
-                    ic.category,
-                    ic.installments,
-                    ic.installment_number + 1,
-                    CASE
-                        WHEN ic.current_ts::date >= DATE '2025-10-04' AND ic.current_ts::date < DATE '2025-11-17'
-                        THEN DATE '2025-11-17' + (ic.current_ts::time)
-                        ELSE ic.current_ts + INTERVAL '1 month'
-                    END
-                FROM installment_cycles ic
-                WHERE ic.installment_number < ic.installments
-            ),
-            monthly_expenses AS (
-                SELECT
-                    id,
-                    current_ts AS expense_ts,
-                    installment_amount AS amount,
-                    description || ' (' || installment_number || '/' || installments || ')' AS description,
-                    method,
-                    tag,
-                    category,
-                    installment_number,
-                    installments
-                FROM installment_cycles
-
-                UNION ALL
-
-                SELECT
-                    id,
-                    expense_ts,
-                    amount,
-                    description,
-                    method,
-                    tag,
-                    category,
-                    1 AS installment_number,
-                    COALESCE(installments, 1) AS installments
-                FROM public.expenses
-                WHERE installments IS NULL OR installments <= 1
-            )
-            SELECT * FROM monthly_expenses
-            WHERE expense_ts::date BETWEEN %s AND %s
-            ORDER BY expense_ts DESC
-        """
-        try:
-            with psycopg.connect(self.dsn) as conn:
-                df = pd.read_sql_query(
-                    sql, conn, params=(start_date, end_date), parse_dates=["expense_ts"]
-                )
-
-            if (
-                pd.api.types.is_datetime64_any_dtype(df["expense_ts"])
-                and df["expense_ts"].dt.tz is not None
-            ):
-                df["expense_ts"] = df["expense_ts"].dt.tz_convert(config.TZ)
-            return df
-        except psycopg.Error as e:
-            log.error(
-                f"Database connection error in get_expenses_in_range_as_dataframe: {e}",
-                exc_info=True,
-            )
-            return pd.DataFrame()
