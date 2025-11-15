@@ -1,7 +1,7 @@
 CREATE TABLE IF NOT EXISTS public.expenses (
     id SERIAL PRIMARY KEY,
     expense_ts TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    amount NUMERIC(12,2) NOT NULL CHECK (amount >= 0),
+    amount NUMERIC(12,2) NOT NULL,
     description TEXT NOT NULL,
     method TEXT NOT NULL,
     tag TEXT NOT NULL,
