@@ -24,7 +24,8 @@ export const formatCurrency = (value) => {
 };
 
 /**
- * Formats a date to Brazilian format (DD/MM/YYYY).
+ * Formats a date to Brazilian format (DD/MM/YYYY) in local time.
+ * Uses local Brazil time to match user's timezone.
  *
  * @param {Date|string} date - The date to format
  * @returns {string} Formatted date string
@@ -40,7 +41,8 @@ export const formatDateBR = (date) => {
 };
 
 /**
- * Formats a date and time to Brazilian format (DD/MM/YYYY HH:mm).
+ * Formats a date and time to Brazilian format (DD/MM/YYYY HH:mm) in local time.
+ * Uses local Brazil time to match user's timezone.
  *
  * @param {Date|string} datetime - The datetime to format
  * @returns {string} Formatted datetime string

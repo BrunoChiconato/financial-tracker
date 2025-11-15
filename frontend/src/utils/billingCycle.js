@@ -5,6 +5,79 @@
  * The billing cycle transitioned from day 4 to day 17 on October 4, 2025.
  */
 
+const CYCLE_RESET_DAY_OLD = 4;
+const CYCLE_RESET_DAY_NEW = 17;
+const CYCLE_CHANGE_DATE = new Date(2025, 9, 4);
+const CYCLE_TRANSITION_END_DATE = new Date(2025, 10, 16);
+
+/**
+ * Calculates the billing cycle date range for a given invoice month.
+ *
+ * @param {number} year - Invoice year
+ * @param {number} month - Invoice month (1-12)
+ * @returns {{start: Date, end: Date}} Billing cycle start and end dates
+ */
+export function billingCycleRange(year, month) {
+  const invoiceMonth = new Date(year, month - 1, 1);
+
+  const transitionInvoiceMonth = new Date(
+    CYCLE_TRANSITION_END_DATE.getFullYear(),
+    CYCLE_TRANSITION_END_DATE.getMonth(),
+    1
+  );
+
+  if (invoiceMonth.getTime() === transitionInvoiceMonth.getTime()) {
+    return {
+      start: new Date(CYCLE_CHANGE_DATE),
+      end: new Date(CYCLE_TRANSITION_END_DATE),
+    };
+  }
+
+  const changeMonth = new Date(CYCLE_CHANGE_DATE.getFullYear(), CYCLE_CHANGE_DATE.getMonth(), 1);
+
+  if (invoiceMonth >= new Date(changeMonth.getFullYear(), changeMonth.getMonth() + 1, 1)) {
+    const cycleDay = CYCLE_RESET_DAY_NEW;
+    const end = new Date(year, month - 1, cycleDay - 1);
+    const start = new Date(end.getFullYear(), end.getMonth() - 1, cycleDay);
+    return { start, end };
+  } else {
+    const cycleDay = CYCLE_RESET_DAY_OLD;
+    const end = new Date(year, month - 1, cycleDay - 1);
+    const start = new Date(end.getFullYear(), end.getMonth() - 1, cycleDay);
+    return { start, end };
+  }
+}
+
+/**
+ * Calculates the number of days in a billing cycle for a given invoice month.
+ *
+ * @param {number} year - Invoice year
+ * @param {number} month - Invoice month (1-12)
+ * @returns {number} Number of days in the billing cycle
+ */
+export function getBillingCycleDays(year, month) {
+  const { start, end } = billingCycleRange(year, month);
+  const diffTime = Math.abs(end - start);
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+  return diffDays;
+}
+
+/**
+ * Calculates which day of the current billing cycle we are in.
+ *
+ * @returns {number} Current day of the billing cycle (1 to totalDays)
+ */
+export function getCurrentDayOfCycle() {
+  const now = new Date();
+  const { invoiceYear, invoiceMonth } = getCurrentInvoiceMonth();
+  const { start } = billingCycleRange(invoiceYear, invoiceMonth);
+
+  const diffTime = now - start;
+  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1;
+
+  return Math.max(diffDays, 1);
+}
+
 /**
  * Calculates the current invoice month based on the billing cycle logic.
  *
@@ -20,8 +93,6 @@ export function getCurrentInvoiceMonth() {
   const currentYear = now.getFullYear();
   const currentMonth = now.getMonth() + 1;
 
-  const CYCLE_CHANGE_DATE = new Date(2025, 9, 4);
-  const TRANSITION_END_DATE = new Date(2025, 10, 16);
   const currentDate = new Date(currentYear, currentMonth - 1, now.getDate());
 
   let invoiceYear = currentYear;
@@ -35,7 +106,7 @@ export function getCurrentInvoiceMonth() {
     } else {
       invoiceMonth = currentMonth;
     }
-  } else if (currentDate <= TRANSITION_END_DATE) {
+  } else if (currentDate <= CYCLE_TRANSITION_END_DATE) {
     invoiceMonth = 11;
     invoiceYear = 2025;
   } else {

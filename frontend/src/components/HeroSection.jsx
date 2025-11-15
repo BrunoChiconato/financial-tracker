@@ -1,14 +1,7 @@
-import {
-  Target,
-  Calendar,
-  Wallet,
-  TrendingUp,
-  List,
-  ArrowUpRight,
-  ArrowDownRight,
-} from 'lucide-react';
+import { Target, Calendar, Wallet, List } from 'lucide-react';
 import { KpiCard } from './KpiCard';
 import { formatCurrency } from '../utils/formatters';
+import { getBillingCycleDays, getCurrentDayOfCycle } from '../utils/billingCycle';
 
 /**
  * HeroSection Component
@@ -32,15 +25,12 @@ import { formatCurrency } from '../utils/formatters';
 export function HeroSection({ summary, capData, invoiceYear, invoiceMonth }) {
   const budget = capData ? parseFloat(capData.netCap) : 4000;
   const spent = summary?.current?.totalSpent || 0;
-  const daysInMonth = 31;
-  const today = new Date().getDate();
-  const expectedByToday = (budget / daysInMonth) * today;
-  const remaining = Math.max(budget - spent, 0);
-  const projected = today > 0 ? (spent / today) * daysInMonth : 0;
 
+  const totalCycleDays = getBillingCycleDays(invoiceYear, invoiceMonth);
+  const currentDayOfCycle = getCurrentDayOfCycle();
+
+  const remaining = Math.max(budget - spent, 0);
   const pctSpent = Math.min((spent / budget) * 100, 100);
-  const pctExpected = Math.min((expectedByToday / budget) * 100, 100);
-  const overPace = spent > expectedByToday;
 
   const totalTx = summary?.current?.transactionCount || 0;
 
@@ -112,14 +102,9 @@ export function HeroSection({ summary, capData, invoiceYear, invoiceMonth }) {
             <div className="flex items-center justify-end gap-1">
               <Calendar className="h-4 w-4" />
               {isPastMonth && 'Mês concluído!'}
-              {isCurrentMonth && `Dia ${today} de ${daysInMonth}`}
+              {isCurrentMonth && `Dia ${currentDayOfCycle} de ${totalCycleDays}`}
               {isFutureMonth && 'Mês ainda não iniciado!'}
             </div>
-            {isCurrentMonth && (
-              <div className="mt-1">
-                Projeção mês: <span className="font-medium">{formatCurrency(projected)}</span>
-              </div>
-            )}
           </div>
         </div>
 
@@ -129,49 +114,17 @@ export function HeroSection({ summary, capData, invoiceYear, invoiceMonth }) {
               <div className="absolute inset-y-0 left-0 w-1/2 bg-slate-100 dark:bg-slate-700" />
               <div className="absolute inset-y-0 left-1/2 right-1/4 bg-slate-200 dark:bg-slate-600" />
               <div className="absolute inset-y-0 right-0 w-1/4 bg-slate-300 dark:bg-slate-500" />
-              {isCurrentMonth && (
-                <div
-                  className="absolute inset-y-0 w-0.5 bg-slate-600 dark:bg-slate-400/70 z-10"
-                  style={{ left: `${pctExpected}%` }}
-                  title="Esperado até hoje"
-                />
-              )}
               <div
-                className={`absolute inset-y-0 left-0 z-20 ${overPace ? 'bg-red-600 dark:bg-red-500' : 'bg-green-600 dark:bg-green-500'}`}
+                className="absolute inset-y-0 left-0 z-20 bg-green-600 dark:bg-green-500"
                 style={{ width: `${pctSpent}%` }}
               />
             </div>
-            {isCurrentMonth && (
-              <div className="mt-2 flex items-center justify-between text-xs text-slate-600 dark:text-slate-400">
-                <span>
-                  Ritmo:{' '}
-                  {overPace ? (
-                    <span className="inline-flex items-center gap-1 font-medium text-red-700 dark:text-red-400">
-                      <ArrowUpRight className="h-3 w-3" /> acima do esperado
-                    </span>
-                  ) : (
-                    <span className="inline-flex items-center gap-1 font-medium text-green-700 dark:text-green-400">
-                      <ArrowDownRight className="h-3 w-3" /> abaixo do esperado
-                    </span>
-                  )}
-                </span>
-                <span>Esperado até hoje: {formatCurrency(expectedByToday)}</span>
-              </div>
-            )}
           </div>
         )}
       </div>
 
       <div className="col-span-12 lg:col-span-4 grid grid-cols-2 lg:grid-cols-1 gap-4">
         <KpiCard icon={Wallet} label="Total gasto" value={formatCurrency(spent)} />
-        {isCurrentMonth && (
-          <KpiCard
-            icon={TrendingUp}
-            label="Projeção fim do mês"
-            value={formatCurrency(projected)}
-            subtle
-          />
-        )}
         <KpiCard icon={List} label="Lançamentos" value={`${totalTx}`} />
       </div>
     </div>
